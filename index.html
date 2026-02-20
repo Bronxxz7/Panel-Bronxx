@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ControlNova - Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- LOGIN -->
+  <div class="loginScreen" id="loginScreen">
+    <div class="loginBox">
+      <h2>🔐 Iniciar sesión</h2>
+
+      <label>Correo</label>
+      <input type="email" id="loginEmail" placeholder="tu@correo.com" autocomplete="email" />
+
+      <label>Contraseña</label>
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" />
+
+      <button class="btn primary" id="btnLogin">Ingresar</button>
+      <p class="loginError" id="loginError"></p>
+
+      <p class="small muted" style="margin-top:10px;">
+        Si es tu primera vez: crea el usuario en Firebase Auth y luego configura tu perfil en Firestore.
+      </p>
+    </div>
+  </div>
+
+  <header class="top">
+    <div class="wrap topbar">
+      <div class="brand">
+        <div class="logo">📊</div>
+        <div>
+          <div class="title">ControlNova</div>
+          <div class="subtitle">Ventas + Gastos · Multiusuario (por proveedor) · Cloud</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="btnNewAccount">+ Nueva cuenta</button>
+        <button class="btn" id="btnNewExpense">+ Nuevo gasto</button>
+        <button class="btn" id="btnImportCsvBtn">⤒ Importar CSV (Excel)</button>
+        <button class="btn ok" id="btnBackup">💾 Descargar respaldo</button>
+        <button class="btn danger" id="btnLogout">Salir</button>
+      </div>
+    </div>
+
+    <div class="wrap nav">
+      <button class="tab active" data-tab="tabDashboard">Dashboard</button>
+      <button class="tab" data-tab="tabAccounts">Cuentas/Ventas</button>
+      <button class="tab" data-tab="tabExpenses">Gastos</button>
+      <button class="tab" data-tab="tabAnalytics">Analítica</button>
+
+      <div class="spacer"></div>
+
+      <button class="btn tiny" id="btnToggleKpis">👁️ KPIs</button>
+      <button class="btn tiny" id="btnToggleCharts">👁️ Gráficos</button>
+      <button class="btn tiny" id="btnToggleTables">👁️ Tablas</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- DASHBOARD -->
+    <section id="tabDashboard" class="tabPage">
+      <section class="kpis" id="kpiPanel">
+        <div class="kpi"><div class="kpiLabel">Ingresos (ventas)</div><div class="kpiValue" id="kpiSales">—</div><div class="kpiHint">Suma de “Precio venta”</div></div>
+        <div class="kpi"><div class="kpiLabel">Costos (compra)</div><div class="kpiValue" id="kpiCosts">—</div><div class="kpiHint">Suma de “Costo compra”</div></div>
+        <div class="kpi"><div class="kpiLabel">Gastos</div><div class="kpiValue" id="kpiExpenses">—</div><div class="kpiHint">Suma de gastos</div></div>
+        <div class="kpi"><div class="kpiLabel">Ganancia neta</div><div class="kpiValue" id="kpiNet">—</div><div class="kpiHint">(Ventas − Costos − Gastos)</div></div>
+        <div class="kpi"><div class="kpiLabel">Por vencer</div><div class="kpiValue" id="kpiExpSoon">—</div><div class="kpiHint">Días ≤ alerta y ≥ 0</div></div>
+        <div class="kpi"><div class="kpiLabel">Vencidas</div><div class="kpiValue" id="kpiExpired">—</div><div class="kpiHint">Días &lt; 0</div></div>
+        <div class="kpi"><div class="kpiLabel">Más vendida (7 días)</div><div class="kpiValue" id="kpiTop7">—</div><div class="kpiHint">por cantidad</div></div>
+        <div class="kpi"><div class="kpiLabel">Más vendida (30 días)</div><div class="kpiValue" id="kpiTop30">—</div><div class="kpiHint">por cantidad</div></div>
+      </section>
+
+      <section class="card" id="chartPanel">
+        <div class="cardHead">
+          <h2>Gráficos</h2>
+          <div class="toolbar"><span class="chip" id="chartHint">Últimos 7 y 30 días</span></div>
+        </div>
+        <div class="cardBody">
+          <div class="chartGrid">
+            <div class="chartBox">
+              <div class="chartTitle">Ventas por categoría (últimos 7 días)</div>
+              <canvas id="chartSales7" width="600" height="240"></canvas>
+            </div>
+            <div class="chartBox">
+              <div class="chartTitle">Ventas por categoría (últimos 30 días)</div>
+              <canvas id="chartSales30" width="600" height="240"></canvas>
+            </div>
+            <div class="chartBox">
+              <div class="chartTitle">Gastos por categoría (últimos 30 días)</div>
+              <canvas id="chartExpenses30" width="600" height="240"></canvas>
+            </div>
+          </div>
+          <p class="small muted">Tip: si no ves barras es porque aún no hay datos.</p>
+        </div>
+      </section>
+
+      <section class="card" id="tablePanel">
+        <div class="cardHead">
+          <h2>Resumen rápido</h2>
+          <div class="toolbar"><span class="chip" id="countChipDash">—</span></div>
+        </div>
+        <div class="cardBody">
+          <div class="row">
+            <div class="miniCard"><div class="miniTitle">Cuentas registradas</div><div class="miniValue" id="miniAccounts">—</div><div class="miniHint">total</div></div>
+            <div class="miniCard"><div class="miniTitle">Gastos registrados</div><div class="miniValue" id="miniExpenses">—</div><div class="miniHint">total</div></div>
+            <div class="miniCard"><div class="miniTitle">Pendiente “Cobrar”</div><div class="miniValue" id="miniCollect">—</div><div class="miniHint">marcados</div></div>
+            <div class="miniCard"><div class="miniTitle">Vence hoy / mañana</div><div class="miniValue" id="miniUrgent">—</div><div class="miniHint">días ≤ 1</div></div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- CUENTAS -->
+    <section id="tabAccounts" class="tabPage hidden">
+      <section class="card">
+        <div class="cardHead">
+          <h2>Filtros Cuentas</h2>
+          <div class="muted small">Busca por nombre, celular, correo, proveedor, categoría, URL, etc.</div>
+        </div>
+        <div class="cardBody">
+          <div class="row">
+            <div><label>Buscar</label><input id="qAcc" type="text" placeholder="Ej: Netflix, Juan, IPTV..." /></div>
+            <div><label>Categoría</label><input id="fCategoryAcc" type="text" placeholder="Ej: Netflix / IPTV" list="catList" />
+              <datalist id="catList">
+                <option value="Netflix"></option><option value="Disney"></option><option value="Prime"></option>
+                <option value="HBO"></option><option value="IPTV"></option>
+              </datalist>
+            </div>
+            <div><label>Proveedor</label><input id="fProviderAcc" type="text" placeholder="Ej: Proveedor A" /></div>
+            <div><label>Cobrar</label>
+              <select id="fCollectAcc">
+                <option value="">Todos</option><option value="YES">Pendiente</option><option value="NO">No pendiente</option>
+              </select>
+            </div>
+            <div><label>Expira</label>
+              <select id="fExpAcc">
+                <option value="">Todo</option><option value="SOON">Por vencer</option><option value="EXPIRED">Vencido</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="cardHead">
+          <h2>Tabla de Cuentas</h2>
+          <div class="toolbar"><span class="chip" id="countChipAcc">0</span></div>
+        </div>
+
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Categoría</th>
+                <th>Perfil / Cliente</th>
+                <th>Contacto</th>
+                <th>Acceso</th>
+                <th>Proveedor</th>
+                <th class="right">Costo</th>
+                <th class="right">Venta</th>
+                <th class="right">Ganancia</th>
+                <th>Expira</th>
+                <th class="right">Días</th>
+                <th class="right">Horas</th>
+                <th>Cobrar</th>
+                <th>Cuenta atrás</th>
+                <th class="right">Perfiles</th>
+                <th>Notas</th>
+                <th class="right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyAcc"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <!-- GASTOS -->
+    <section id="tabExpenses" class="tabPage hidden">
+      <section class="card">
+        <div class="cardHead">
+          <h2>Filtros Gastos</h2>
+          <div class="muted small">Anota gastos como quieras.</div>
+        </div>
+        <div class="cardBody">
+          <div class="row">
+            <div><label>Buscar</label><input id="qExp" type="text" placeholder="Ej: internet, panel..." /></div>
+            <div><label>Categoría gasto</label><input id="fExpCat" type="text" placeholder="Ej: Panel / Internet" list="expCatList" />
+              <datalist id="expCatList">
+                <option value="Internet"></option><option value="Panel"></option><option value="Publicidad"></option>
+                <option value="Herramientas"></option><option value="Transporte"></option>
+              </datalist>
+            </div>
+            <div><label>Desde</label><input id="fExpFrom" type="date" /></div>
+            <div><label>Hasta</label><input id="fExpTo" type="date" /></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="cardHead">
+          <h2>Tabla de Gastos</h2>
+          <div class="toolbar"><span class="chip" id="countChipExp">0</span></div>
+        </div>
+
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Categoría</th>
+                <th>Proveedor</th>
+                <th>Nota</th>
+                <th class="right">Monto</th>
+                <th class="right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyExp"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <!-- ANALÍTICA -->
+    <section id="tabAnalytics" class="tabPage hidden">
+      <section class="card">
+        <div class="cardHead">
+          <h2>Analítica</h2>
+          <div class="muted small">Lo más vendido y tendencias por fechas.</div>
+        </div>
+        <div class="cardBody">
+          <div class="row">
+            <div><label>Ventana</label>
+              <select id="aWindow"><option value="7">Últimos 7 días</option><option value="30">Últimos 30 días</option><option value="90">Últimos 90 días</option></select>
+            </div>
+            <div><label>Métrica</label>
+              <select id="aMetric"><option value="count">Cantidad</option><option value="revenue">Ingresos</option><option value="profit">Ganancia</option></select>
+            </div>
+            <div><label>Top N</label><select id="aTopN"><option value="5">Top 5</option><option value="10">Top 10</option></select></div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="chartBox">
+            <div class="chartTitle" id="aTitle">Top categorías</div>
+            <canvas id="chartTopCats" width="900" height="280"></canvas>
+          </div>
+
+          <p class="small muted">Esta analítica usa la fecha de registro.</p>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <!-- MODAL CUENTA -->
+  <div class="modalBackdrop" id="modalAccBack">
+    <div class="modal">
+      <div class="modalHead">
+        <div class="modalTitle" id="modalAccTitle">Nueva cuenta</div>
+        <div class="modalActions">
+          <button class="btn" id="btnAccClose">Cerrar</button>
+          <button class="btn ok" id="btnAccSave">Guardar</button>
+        </div>
+      </div>
+
+      <div class="modalBody">
+        <div class="row">
+          <div>
+            <label>Categoría (tú escribes)</label>
+            <input id="mCategory" type="text" placeholder="Ej: Netflix / IPTV" list="catList" />
+            <div class="small muted">Si escribes <b>IPTV</b> se muestran campos IPTV.</div>
+          </div>
+          <div><label>Perfil / Cliente</label><input id="mName" type="text" /></div>
+          <div><label>Celular (WhatsApp)</label><input id="mPhone" type="text" placeholder="Ej: 51999999999" /></div>
+          <div><label>Perfiles (cantidad)</label><input id="mProfiles" type="number" min="0" step="1" value="1" /></div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="subcard" id="boxStreaming">
+          <div class="subHead"><h3>Campos Streaming</h3><span class="small muted">PIN / Correo / Clave</span></div>
+          <div class="row">
+            <div><label>PIN</label><input id="mPin" type="text" /></div>
+            <div><label>Correo</label><input id="mEmail" type="text" /></div>
+            <div><label>Clave</label><input id="mPass" type="text" /></div>
+            <div><label>Nombre cuenta (opcional)</label><input id="mAccountName" type="text" /></div>
+          </div>
+        </div>
+
+        <div class="subcard hidden" id="boxIPTV">
+          <div class="subHead"><h3>Campos IPTV</h3><span class="small muted">Usuario / Clave / URL</span></div>
+          <div class="row">
+            <div><label>Usuario</label><input id="mUser" type="text" /></div>
+            <div><label>Clave IPTV</label><input id="mIptvPass" type="text" /></div>
+            <div><label>URL IPTV</label><input id="mUrl" type="text" /></div>
+            <div><label>Plan (opcional)</label><input id="mPlan" type="text" /></div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <div><label>Proveedor</label><input id="mProvider" type="text" /></div>
+          <div><label>Costo compra</label><input id="mBuyPrice" type="number" min="0" step="0.01" value="0" /></div>
+          <div><label>Precio venta</label><input id="mSellPrice" type="number" min="0" step="0.01" value="0" /></div>
+          <div><label>Expiración</label><input id="mExpire" type="date" /></div>
+        </div>
+
+        <div class="row">
+          <div><label>Alerta (días antes)</label><input id="mAlertDays" type="number" min="0" step="1" value="3" /></div>
+          <div><label>Cobrar (pendiente)</label>
+            <select id="mCollect"><option value="NO">No</option><option value="YES">Sí</option></select>
+          </div>
+          <div><label>Etiqueta (opcional)</label><input id="mTag" type="text" placeholder="Promo, etc." /></div>
+        </div>
+
+        <div><label>Notas / Datos extra</label><textarea id="mNotes"></textarea></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL GASTO -->
+  <div class="modalBackdrop" id="modalExpBack">
+    <div class="modal">
+      <div class="modalHead">
+        <div class="modalTitle" id="modalExpTitle">Nuevo gasto</div>
+        <div class="modalActions">
+          <button class="btn" id="btnExpClose">Cerrar</button>
+          <button class="btn ok" id="btnExpSave">Guardar</button>
+        </div>
+      </div>
+
+      <div class="modalBody">
+        <div class="row">
+          <div><label>Fecha</label><input id="eDate" type="date" /></div>
+          <div><label>Categoría gasto</label><input id="eCategory" type="text" list="expCatList" /></div>
+          <div><label>Proveedor</label><input id="eProvider" type="text" /></div>
+          <div><label>Monto</label><input id="eAmount" type="number" min="0" step="0.01" value="0" /></div>
+        </div>
+        <div><label>Nota</label><textarea id="eNote"></textarea></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMPORT CSV -->
+  <input id="fileImportCsv" type="file" accept=".csv,text/csv" hidden />
+
+  <!-- TOAST -->
+  <div class="toast" id="toast">
+    <div class="msg" id="toastMsg"></div>
+    <div class="x" id="toastX">✕</div>
+  </div>
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyD-W21i17SvUKZzxjFp-VAUsSNq7bTGOmA",
+    authDomain: "panelbronxx.firebaseapp.com",
+    projectId: "panelbronxx",
+    storageBucket: "panelbronxx.firebasestorage.app",
+    messagingSenderId: "34518227374",
+    appId: "1:34518227374:web:e39bd991f5a1c257bb503f",
+    measurementId: "G-JF1B7WBV5G"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  window.firebaseAuth = auth;
+  window.firebaseDB = db;
+</script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
