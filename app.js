@@ -1,10 +1,6 @@
-// =====================================================
-// ControlNova - Firebase Auth (Email/Pass) + Firestore
-// Multi-tenant: tenants/{tenantId}/accounts , tenants/{tenantId}/expenses
-// Perfil de usuario: users/{uid} => { role: "admin"|"provider", tenantId: "t_xxx", name: "..." }
-// =====================================================
 
-// ✅ Firebase CDN (usa UNA sola versión en todo el proyecto)
+
+// Firebase CDN
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
 import {
   getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut
@@ -14,8 +10,7 @@ import {
   collection, addDoc, updateDoc, deleteDoc,
   query, orderBy, onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
-
-// ============= 1) TU CONFIG (YA LLENA) =============
+
 const firebaseConfig = {
   apiKey: "AIzaSyD-W21i17SvUKZzxjFp-VAUsSNq7bTGOmA",
   authDomain: "panelbronxx.firebaseapp.com",
@@ -25,9 +20,7 @@ const firebaseConfig = {
   appId: "1:34518227374:web:e39bd991f5a1c257bb503f",
   measurementId: "G-JF1B7WBV5G"
 };
-// ================================================
 
-// ✅ Evita “doble inicialización” por si algún día se carga 2 veces
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
 const auth = getAuth(app);
