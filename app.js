@@ -1,5 +1,3 @@
-
-
 // Firebase CDN
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
 import {
@@ -10,7 +8,7 @@ import {
   collection, addDoc, updateDoc, deleteDoc,
   query, orderBy, onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
-
+
 const firebaseConfig = {
   apiKey: "AIzaSyD-W21i17SvUKZzxjFp-VAUsSNq7bTGOmA",
   authDomain: "panelbronxx.firebaseapp.com",
@@ -131,31 +129,20 @@ let unsubAccounts = null;
 let unsubExpenses = null;
 
 // ---------- LOGIN UI ----------
-async function doLogin() {
-  $("loginError") && ($("loginError").textContent = "");
-  const email = ($("loginEmail")?.value || "").trim();
-  const pass = $("loginPass")?.value || "";
+async function doLogin(){
+  $("loginError").textContent = "";
+  const email = $("loginEmail").value.trim();
+  const pass = $("loginPass").value;
 
-  try {
+  try{
     await signInWithEmailAndPassword(auth, email, pass);
-  } catch (e) {
-    console.error("Login error:", e);
-    if ($("loginError")) $("loginError").textContent = "Correo o contraseña incorrectos.";
+  } catch (e){
+    console.error("LOGIN ERROR:", e.code, e.message);
+    // muestra el código real en pantalla:
+    $("loginError").textContent = `Error: ${e.code}`;
+    toast(`Error: ${e.code}`);
   }
 }
-
-$("btnLogin")?.addEventListener("click", (e) => {
-  // por si algún día lo conviertes en form
-  e?.preventDefault?.();
-  doLogin();
-});
-$("loginPass")?.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") doLogin();
-});
-
-$("btnLogout")?.addEventListener("click", async () => {
-  await signOut(auth);
-});
 
 // ---------- load user profile ----------
 async function loadUserProfile(uid) {
@@ -239,16 +226,16 @@ onAuthStateChanged(auth, async (u) => {
     console.error("Profile load error:", e);
   }
 
-  if (!profile || !profile.tenantId) {
-    unsubscribeAll();
-    if ($("loginScreen")) $("loginScreen").style.display = "flex";
-    if ($("loginError")) $("loginError").textContent = "Este usuario no está autorizado (falta users/{uid}.tenantId).";
-    await signOut(auth);
-    return;
-  }
+  // Perfil opcional: si no existe, igual dejamos entrar,
+// solo que el nombre/rol no se usará.
+currentProfile = profile || { role: "user", name: "", tenantId: u.uid };
+
+// Tenant SIEMPRE = UID (data privada por usuario)
+subscribeTenantData(u.uid);
 
   currentProfile = profile;
-  subscribeTenantData(profile.tenantId);
+  // Cada usuario tiene su propio "tenant" = su UID
+subscribeTenantData(u.uid);
 });
 
 // =====================================================
