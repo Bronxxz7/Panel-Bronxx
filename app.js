@@ -9,6 +9,9 @@ import {
   query, orderBy, onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
+// =======================
+// Firebase config
+// =======================
 const firebaseConfig = {
   apiKey: "AIzaSyD-W21i17SvUKZzxjFp-VAUsSNq7bTGOmA",
   authDomain: "panelbronxx.firebaseapp.com",
@@ -20,13 +23,14 @@ const firebaseConfig = {
 };
 
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-
 const auth = getAuth(app);
 const fs = getFirestore(app);
 
 const $ = (id) => document.getElementById(id);
 
-// ---------- helpers ----------
+// =======================
+// Helpers UI
+// =======================
 function fmt(n, d = 2) {
   if (!Number.isFinite(n)) return "—";
   return n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -58,6 +62,9 @@ $("toastX")?.addEventListener("click", () => {
   if (elToast) elToast.style.display = "none";
 });
 
+// =======================
+// Dates
+// =======================
 function todayISO() {
   const d = new Date();
   const off = d.getTimezoneOffset();
@@ -78,12 +85,6 @@ function hoursSinceISO(iso) {
   const ms = b - a;
   return Math.floor(ms / (1000 * 60 * 60));
 }
-function normalizePhone(phone) {
-  return String(phone || "").replace(/\D/g, "");
-}
-function isIPTVCategory(cat) {
-  return String(cat || "").trim().toUpperCase() === "IPTV";
-}
 function addDaysISO(dateISO, days) {
   if (!dateISO) return "";
   const d = new Date(dateISO + "T00:00:00");
@@ -91,6 +92,12 @@ function addDaysISO(dateISO, days) {
   const off = d.getTimezoneOffset();
   const local = new Date(d.getTime() - off * 60000);
   return local.toISOString().slice(0, 10);
+}
+function normalizePhone(phone) {
+  return String(phone || "").replace(/\D/g, "");
+}
+function isIPTVCategory(cat) {
+  return String(cat || "").trim().toUpperCase() === "IPTV";
 }
 
 // Cuenta atrás
@@ -116,35 +123,50 @@ function timeLeftLabel(dateISO) {
   return past ? `VENCIDA (${base})` : base;
 }
 
-// ---------- auth + tenant context ----------
+// =======================
+// Auth + Tenant context
+// =======================
 let currentUser = null;
-let currentProfile = null; // {role, tenantId, name}
+let currentProfile = null; // {role, name, tenantId}
 let tenantId = null;
 
-// datos en memoria (vienen de Firestore)
 let db = { accounts: [], expenses: [] };
 
-// listeners (para desuscribirse)
 let unsubAccounts = null;
 let unsubExpenses = null;
 
-// ---------- LOGIN UI ----------
-async function doLogin(){
-  $("loginError").textContent = "";
-  const email = $("loginEmail").value.trim();
-  const pass = $("loginPass").value;
+// =======================
+// LOGIN
+// =======================
+async function doLogin() {
+  $("loginError") && ($("loginError").textContent = "");
+  const email = ($("loginEmail")?.value || "").trim();
+  const pass = $("loginPass")?.value || "";
 
-  try{
+  try {
     await signInWithEmailAndPassword(auth, email, pass);
-  } catch (e){
+  } catch (e) {
     console.error("LOGIN ERROR:", e.code, e.message);
-    // muestra el código real en pantalla:
-    $("loginError").textContent = `Error: ${e.code}`;
+    $("loginError") && ($("loginError").textContent = `Error: ${e.code}`);
     toast(`Error: ${e.code}`);
   }
 }
 
-// ---------- load user profile ----------
+$("btnLogin")?.addEventListener("click", doLogin);
+$("loginPass")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") doLogin();
+});
+$("btnLogout")?.addEventListener("click", async () => {
+  try {
+    await signOut(auth);
+  } catch (e) {
+    console.error("Logout error:", e);
+  }
+});
+
+// =======================
+// Profile (opcional)
+// =======================
 async function loadUserProfile(uid) {
   const ref = doc(fs, "users", uid);
   const snap = await getDoc(ref);
@@ -152,11 +174,12 @@ async function loadUserProfile(uid) {
   return snap.data();
 }
 
-// ---------- subscribe tenant data ----------
+// =======================
+// Subscribe tenant data
+// =======================
 function subscribeTenantData(tid) {
   tenantId = tid;
 
-  // Siempre limpia subs anteriores por seguridad
   if (unsubAccounts) unsubAccounts();
   if (unsubExpenses) unsubExpenses();
   unsubAccounts = null;
@@ -174,7 +197,7 @@ function subscribeTenantData(tid) {
     },
     (err) => {
       console.error("Accounts snapshot error:", err);
-      toast("Error cargando cuentas (permisos/índices). Revisa consola.");
+      toast("Error cargando cuentas (Firestore). Revisa consola/permisos/índices.");
     }
   );
 
@@ -190,7 +213,7 @@ function subscribeTenantData(tid) {
     },
     (err) => {
       console.error("Expenses snapshot error:", err);
-      toast("Error cargando gastos (permisos/índices). Revisa consola.");
+      toast("Error cargando gastos (Firestore). Revisa consola/permisos/índices.");
     }
   );
 }
@@ -204,19 +227,21 @@ function unsubscribeAll() {
   tenantId = null;
 }
 
-// ---------- session handler ----------
+// =======================
+// Session handler (CORREGIDO)
+// =======================
 onAuthStateChanged(auth, async (u) => {
   currentUser = u;
 
   if (!u) {
     unsubscribeAll();
-    if ($("loginScreen")) $("loginScreen").style.display = "flex";
+    $("loginScreen") && ($("loginScreen").style.display = "flex");
     toast("Sesión cerrada.");
     renderAll();
     return;
   }
 
-  if ($("loginScreen")) $("loginScreen").style.display = "none";
+  $("loginScreen") && ($("loginScreen").style.display = "none");
   toast("Sesión iniciada ✅");
 
   let profile = null;
@@ -226,21 +251,16 @@ onAuthStateChanged(auth, async (u) => {
     console.error("Profile load error:", e);
   }
 
-  // Perfil opcional: si no existe, igual dejamos entrar,
-// solo que el nombre/rol no se usará.
-currentProfile = profile || { role: "user", name: "", tenantId: u.uid };
+  // Perfil opcional: si no existe, igual deja entrar
+  currentProfile = profile || { role: "user", name: "", tenantId: u.uid };
 
-// Tenant SIEMPRE = UID (data privada por usuario)
-subscribeTenantData(u.uid);
-
-  currentProfile = profile;
-  // Cada usuario tiene su propio "tenant" = su UID
-subscribeTenantData(u.uid);
+  // ✅ Cada usuario ve SOLO su información
+  subscribeTenantData(u.uid);
 });
 
-// =====================================================
-// UI TABS
-// =====================================================
+// =======================
+// UI Tabs
+// =======================
 document.querySelectorAll(".tab").forEach((btn) => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
@@ -273,9 +293,9 @@ $("btnToggleTables")?.addEventListener("click", () => {
 });
 applyToggles();
 
-// =====================================================
-// MODELS
-// =====================================================
+// =======================
+// Models
+// =======================
 function blankAccount() {
   return {
     category: "",
@@ -322,9 +342,9 @@ function blankExpense() {
   };
 }
 
-// =====================================================
-// FIRESTORE CRUD
-// =====================================================
+// =======================
+// Firestore CRUD
+// =======================
 function requireTenant() {
   if (!tenantId) {
     toast("No hay tenant cargado.");
@@ -383,9 +403,9 @@ async function deleteExpenseFirestore(id) {
   await deleteDoc(ref);
 }
 
-// =====================================================
-// MODALS
-// =====================================================
+// =======================
+// Modals
+// =======================
 let editingAccId = null;
 let editingExpId = null;
 
@@ -398,12 +418,12 @@ function syncCategoryUI() {
 $("mCategory")?.addEventListener("input", syncCategoryUI);
 
 function openAccModal(title) {
-  if ($("modalAccTitle")) $("modalAccTitle").textContent = title;
-  if ($("modalAccBack")) $("modalAccBack").style.display = "flex";
+  $("modalAccTitle") && ($("modalAccTitle").textContent = title);
+  $("modalAccBack") && ($("modalAccBack").style.display = "flex");
   syncCategoryUI();
 }
 function closeAccModal() {
-  if ($("modalAccBack")) $("modalAccBack").style.display = "none";
+  $("modalAccBack") && ($("modalAccBack").style.display = "none");
   editingAccId = null;
 }
 $("btnAccClose")?.addEventListener("click", closeAccModal);
@@ -441,6 +461,7 @@ function setAccModalFromRow(a) {
 
 function getAccRowFromModal(base) {
   const a = base ? { ...base } : blankAccount();
+
   a.category = $("mCategory").value.trim();
   a.profileName = $("mName").value.trim();
   a.phone = $("mPhone").value.trim();
@@ -465,6 +486,7 @@ function getAccRowFromModal(base) {
   a.collect = $("mCollect").value;
   a.tag = $("mTag").value.trim();
   a.notes = $("mNotes").value.trim();
+
   return a;
 }
 
@@ -485,11 +507,11 @@ function validateAccount(a) {
 }
 
 function openExpModal(title) {
-  if ($("modalExpTitle")) $("modalExpTitle").textContent = title;
-  if ($("modalExpBack")) $("modalExpBack").style.display = "flex";
+  $("modalExpTitle") && ($("modalExpTitle").textContent = title);
+  $("modalExpBack") && ($("modalExpBack").style.display = "flex");
 }
 function closeExpModal() {
-  if ($("modalExpBack")) $("modalExpBack").style.display = "none";
+  $("modalExpBack") && ($("modalExpBack").style.display = "none");
   editingExpId = null;
 }
 $("btnExpClose")?.addEventListener("click", closeExpModal);
@@ -536,14 +558,12 @@ $("btnAccSave")?.addEventListener("click", async () => {
   const base = editingAccId ? db.accounts.find((x) => x.id === editingAccId) : null;
   const a = getAccRowFromModal(base);
   const err = validateAccount(a);
-  if (err) {
-    toast(err);
-    return;
-  }
+  if (err) return toast(err);
 
   try {
     if (!editingAccId) await addAccountFirestore(a);
     else await updateAccountFirestore(editingAccId, a);
+
     closeAccModal();
     toast("Cuenta guardada ✅");
   } catch (e) {
@@ -556,14 +576,12 @@ $("btnExpSave")?.addEventListener("click", async () => {
   const base = editingExpId ? db.expenses.find((x) => x.id === editingExpId) : null;
   const e = getExpRowFromModal(base);
   const err = validateExpense(e);
-  if (err) {
-    toast(err);
-    return;
-  }
+  if (err) return toast(err);
 
   try {
     if (!editingExpId) await addExpenseFirestore(e);
     else await updateExpenseFirestore(editingExpId, e);
+
     closeExpModal();
     toast("Gasto guardado ✅");
   } catch (er) {
@@ -572,9 +590,9 @@ $("btnExpSave")?.addEventListener("click", async () => {
   }
 });
 
-// =====================================================
-// WHATSAPP
-// =====================================================
+// =======================
+// WhatsApp
+// =======================
 function buildWhatsAppMessage(a) {
   const cat = a.category || "Cuenta";
   const exp = a.expire ? a.expire : "—";
@@ -582,16 +600,9 @@ function buildWhatsAppMessage(a) {
   const daysTxt = d === null ? "—" : `${d} día(s)`;
   const price = fmt(+a.sellPrice || 0, 2);
 
-  let access = "";
-  if (isIPTVCategory(a.category)) {
-    access = `Usuario: ${a.user || "—"}
-Clave: ${a.iptvPass || "—"}
-URL: ${a.url || "—"}`;
-  } else {
-    access = `Correo: ${a.email || "—"}
-Clave: ${a.pass || "—"}
-PIN: ${a.pin || "—"}`;
-  }
+  const access = isIPTVCategory(a.category)
+    ? `Usuario: ${a.user || "—"}\nClave: ${a.iptvPass || "—"}\nURL: ${a.url || "—"}`
+    : `Correo: ${a.email || "—"}\nClave: ${a.pass || "—"}\nPIN: ${a.pin || "—"}`;
 
   let msg = `Hola ${a.profileName || ""} 👋
 📌 Plataforma: ${cat}
@@ -603,24 +614,19 @@ ${access}
 
 ✅ Si deseas renovar tu ${cat}, respóndeme "RENOVAR" y te lo dejo activo.`;
 
-  if (a.notes) {
-    msg += `\n\n📝 Nota: ${a.notes}`;
-  }
+  if (a.notes) msg += `\n\n📝 Nota: ${a.notes}`;
   return msg;
 }
 function openWhatsApp(a) {
   const phone = normalizePhone(a.phone);
-  if (!phone) {
-    toast("No hay celular válido para WhatsApp.");
-    return;
-  }
+  if (!phone) return toast("No hay celular válido para WhatsApp.");
   const url = `https://wa.me/${phone}?text=${encodeURIComponent(buildWhatsAppMessage(a))}`;
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
-// =====================================================
-// FILTROS (LOCAL sobre arrays cargados de Firestore)
-// =====================================================
+// =======================
+// Filtros
+// =======================
 function filterAccounts() {
   const q = ($("qAcc")?.value || "").trim().toLowerCase();
   const cat = ($("fCategoryAcc")?.value || "").trim().toLowerCase();
@@ -654,6 +660,7 @@ function filterAccounts() {
       ].join(" ").toLowerCase();
       if (!blob.includes(q)) return false;
     }
+
     return true;
   });
 }
@@ -689,9 +696,9 @@ $("aWindow")?.addEventListener("change", renderAnalytics);
 $("aMetric")?.addEventListener("change", renderAnalytics);
 $("aTopN")?.addEventListener("change", renderAnalytics);
 
-// =====================================================
-// RENDER CUENTAS / GASTOS
-// =====================================================
+// =======================
+// Render tables
+// =======================
 function statusPillAccount(a) {
   const d = daysUntil(a.expire);
   if (d === null) return `<span class="pill">Sin fecha</span>`;
@@ -720,7 +727,6 @@ function renderAccounts() {
 
   const list = filterAccounts();
   $("countChipAcc") && ($("countChipAcc").textContent = `${list.length} cuentas`);
-
   tbody.innerHTML = "";
 
   list
@@ -730,7 +736,6 @@ function renderAccounts() {
       const d = daysUntil(a.expire);
       const createdISO = tsToISO(a.createdAt) || tsToISO(a.updatedAt);
       const hrs = createdISO ? hoursSinceISO(createdISO) : null;
-
       const profit = (+a.sellPrice || 0) - (+a.buyPrice || 0);
 
       const access = isIPTVCategory(a.category)
@@ -742,7 +747,9 @@ function renderAccounts() {
            <div class="small"><span class="muted">PIN:</span> ${escapeHtml(a.pin || "")}</div>`;
 
       const notesShort = (a.notes || "").trim();
-      const notesView = notesShort ? escapeHtml(notesShort.slice(0, 80)) + (notesShort.length > 80 ? "…" : "") : "";
+      const notesView = notesShort
+        ? escapeHtml(notesShort.slice(0, 80)) + (notesShort.length > 80 ? "…" : "")
+        : "";
 
       const tr = document.createElement("tr");
       const shouldBlink = d !== null && d >= 0 && d <= (+a.alertDays || 0);
@@ -792,10 +799,7 @@ function renderAccounts() {
       } else if (act === "wa") {
         openWhatsApp(row);
       } else if (act === "renew") {
-        if (!row.expire) {
-          toast("Esta cuenta no tiene expiración.");
-          return;
-        }
+        if (!row.expire) return toast("Esta cuenta no tiene expiración.");
         await renewAccountFirestore(id, row.expire);
         toast("Renovado +30 días ✅");
       }
@@ -805,9 +809,6 @@ function renderAccounts() {
   tbody.querySelectorAll("input[type=checkbox][data-act]").forEach((ch) => {
     ch.addEventListener("change", async () => {
       const id = ch.dataset.id;
-      const row = db.accounts.find((x) => x.id === id);
-      if (!row) return;
-
       try {
         await updateAccountFirestore(id, { collect: ch.checked ? "YES" : "NO" });
       } catch (e) {
@@ -824,7 +825,6 @@ function renderExpenses() {
 
   const list = filterExpenses();
   $("countChipExp") && ($("countChipExp").textContent = `${list.length} gastos`);
-
   tbody.innerHTML = "";
 
   list
@@ -866,9 +866,9 @@ function renderExpenses() {
   });
 }
 
-// =====================================================
-// DASHBOARD CALCS + CHARTS
-// =====================================================
+// =======================
+// Dashboard + Charts
+// =======================
 function sumAccounts() {
   const sales = db.accounts.reduce((s, a) => s + (+a.sellPrice || 0), 0);
   const costs = db.accounts.reduce((s, a) => s + (+a.buyPrice || 0), 0);
@@ -912,7 +912,7 @@ function topCategoryByWindow(days) {
   return best ? `${best} (${bestV})` : "—";
 }
 
-// charts helpers
+// chart helpers (simple)
 function clearCanvas(canvas) {
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1024,6 +1024,7 @@ function topCategoriesChart(days, metric, topN) {
   items.sort((a, b) => b.value - a.value);
   return items.slice(0, topN);
 }
+
 function renderAnalytics() {
   if (!$("chartTopCats")) return;
 
@@ -1076,10 +1077,9 @@ function renderDashboard() {
   drawBarChart($("chartExpenses30"), exp30.length ? exp30 : [{ label: "Sin datos", value: 0 }], { barColor: "rgba(255,107,107,0.40)" });
 }
 
-// refrescar contador cada minuto
+// refrescar cada minuto
 setInterval(() => renderAll(), 60000);
 
-// ✅ IMPORTANTE: renderAll ya NO se bloquea si una tabla/canvas no existe
 function renderAll() {
   if ($("kpiSales")) renderDashboard();
   if ($("tbodyAcc")) renderAccounts();
@@ -1087,9 +1087,9 @@ function renderAll() {
   if ($("chartTopCats")) renderAnalytics();
 }
 
-// =====================================================
-// BACKUP (descarga JSON de lo que ya está cargado)
-// =====================================================
+// =======================
+// Backup JSON
+// =======================
 $("btnBackup")?.addEventListener("click", () => {
   const backupData = {
     exportedAt: new Date().toISOString(),
@@ -1112,9 +1112,9 @@ $("btnBackup")?.addEventListener("click", () => {
   toast("Respaldo descargado 💾");
 });
 
-// =====================================================
-// IMPORT CSV (sube los datos al tenant actual)
-// =====================================================
+// =======================
+// Import CSV
+// =======================
 $("btnImportCsvBtn")?.addEventListener("click", () => $("fileImportCsv")?.click());
 
 function parseCSV(text) {
@@ -1140,6 +1140,7 @@ function parseCSV(text) {
   if (row.some((x) => String(x).trim() !== "")) out.push(row);
   return out;
 }
+
 function normalizeHeader(h) {
   return String(h || "")
     .trim().toLowerCase()
@@ -1156,6 +1157,7 @@ function numFromCell(x) {
   const n = Number(norm);
   return Number.isFinite(n) ? n : 0;
 }
+
 function mapCSVToAccount(obj) {
   const a = blankAccount();
   a.category = (obj.categoria || obj.category || obj.tipo || "").trim();
@@ -1187,6 +1189,7 @@ function mapCSVToAccount(obj) {
   a.tag = (obj.etiqueta || obj.tag || "").trim();
   return a;
 }
+
 function mapCSVToExpense(obj) {
   const e = blankExpense();
   e.date = (obj.fecha || obj.date || todayISO()).trim();
@@ -1201,7 +1204,6 @@ $("fileImportCsv")?.addEventListener("change", async (e) => {
   const file = e.target.files?.[0];
   e.target.value = "";
   if (!file) return;
-
   if (!requireTenant()) return;
 
   try {
@@ -1234,7 +1236,7 @@ $("fileImportCsv")?.addEventListener("change", async (e) => {
   }
 });
 
-// (opcional) Si algún día conviertes el login en <form id="loginForm">, esto lo soporta
+// (opcional) soporte si algún día usas <form id="loginForm">
 const loginForm = document.getElementById("loginForm");
 if (loginForm) {
   loginForm.addEventListener("submit", (e) => {
