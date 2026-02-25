@@ -1,4 +1,3 @@
-// Firebase CDN
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
 import {
   getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut
@@ -9,9 +8,6 @@ import {
   query, orderBy, onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-// =======================
-// Firebase config
-// =======================
 const firebaseConfig = {
   apiKey: "AIzaSyD-W21i17SvUKZzxjFp-VAUsSNq7bTGOmA",
   authDomain: "panelbronxx.firebaseapp.com",
@@ -28,9 +24,6 @@ const fs = getFirestore(app);
 
 const $ = (id) => document.getElementById(id);
 
-// =======================
-// Helpers UI
-// =======================
 function fmt(n, d = 2) {
   if (!Number.isFinite(n)) return "—";
   return n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -61,10 +54,50 @@ $("toastX")?.addEventListener("click", () => {
   const elToast = $("toast");
   if (elToast) elToast.style.display = "none";
 });
+function setupSideMenu() {
+  const btnMenu = $("btnMenu");
+  const overlay = $("sideMenu");
+  const btnClose = $("btnCloseMenu");
 
-// =======================
-// Dates
-// =======================
+  if (!btnMenu || !overlay) return;
+
+  const openMenu = () => overlay.classList.add("open");
+  const closeMenu = () => overlay.classList.remove("open");
+
+  btnMenu.addEventListener("click", openMenu);
+  btnClose?.addEventListener("click", closeMenu);
+
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeMenu();
+  });
+
+  overlay.querySelectorAll("[data-tab]").forEach((b) => {
+    b.addEventListener("click", () => {
+      const target = b.getAttribute("data-tab");
+      if (!target) return;
+
+      openTab(target);
+closeMenu();
+    });
+  });
+
+  overlay.querySelectorAll("[data-click]").forEach((b) => {
+    b.addEventListener("click", () => {
+      const id = b.getAttribute("data-click");
+      if (!id) return;
+
+      const el = $(id);
+      if (el) el.click();
+
+      closeMenu();
+    });
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeMenu();
+  });
+}
+
 function todayISO() {
   const d = new Date();
   const off = d.getTimezoneOffset();
@@ -123,9 +156,6 @@ function timeLeftLabel(dateISO) {
   return past ? `VENCIDA (${base})` : base;
 }
 
-// =======================
-// Auth + Tenant context
-// =======================
 let currentUser = null;
 let currentProfile = null; // {role, name, tenantId}
 let tenantId = null;
@@ -135,9 +165,6 @@ let db = { accounts: [], expenses: [] };
 let unsubAccounts = null;
 let unsubExpenses = null;
 
-// =======================
-// LOGIN
-// =======================
 async function doLogin() {
   $("loginError") && ($("loginError").textContent = "");
   const email = ($("loginEmail")?.value || "").trim();
@@ -164,9 +191,6 @@ $("btnLogout")?.addEventListener("click", async () => {
   }
 });
 
-// =======================
-// Profile (opcional)
-// =======================
 async function loadUserProfile(uid) {
   const ref = doc(fs, "users", uid);
   const snap = await getDoc(ref);
@@ -174,9 +198,6 @@ async function loadUserProfile(uid) {
   return snap.data();
 }
 
-// =======================
-// Subscribe tenant data
-// =======================
 function subscribeTenantData(tid) {
   tenantId = tid;
 
@@ -227,9 +248,6 @@ function unsubscribeAll() {
   tenantId = null;
 }
 
-// =======================
-// Session handler (CORREGIDO)
-// =======================
 onAuthStateChanged(auth, async (u) => {
   currentUser = u;
 
@@ -257,21 +275,22 @@ onAuthStateChanged(auth, async (u) => {
   // ✅ Cada usuario ve SOLO su información
   subscribeTenantData(u.uid);
 });
+function openTab(targetId) {
+  // activar botón tab si existe (opcional)
+  document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
+  const btn = document.querySelector(`.tab[data-tab="${targetId}"]`);
+  if (btn) btn.classList.add("active");
 
-// =======================
-// UI Tabs
-// =======================
+  // mostrar sección
+  document.querySelectorAll(".tabPage").forEach((p) => p.classList.add("hidden"));
+  document.getElementById(targetId)?.classList.remove("hidden");
+
+  renderAll();
+}
+
 document.querySelectorAll(".tab").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
-    btn.classList.add("active");
-    const target = btn.dataset.tab;
-    document.querySelectorAll(".tabPage").forEach((p) => p.classList.add("hidden"));
-    $(target)?.classList.remove("hidden");
-    renderAll();
-  });
+  btn.addEventListener("click", () => openTab(btn.dataset.tab));
 });
-
 // show/hide panels
 let uiToggles = { kpis: true, charts: true, tables: true };
 function applyToggles() {
@@ -734,8 +753,6 @@ function renderAccounts() {
     .sort((a, b) => (a.expire || "9999-12-31").localeCompare(b.expire || "9999-12-31"))
     .forEach((a) => {
       const d = daysUntil(a.expire);
-      const createdISO = tsToISO(a.createdAt) || tsToISO(a.updatedAt);
-      const hrs = createdISO ? hoursSinceISO(createdISO) : null;
       const profit = (+a.sellPrice || 0) - (+a.buyPrice || 0);
 
       const access = isIPTVCategory(a.category)
@@ -766,7 +783,6 @@ function renderAccounts() {
         <td class="right mono">${fmt(profit, 2)}</td>
         <td><div>${escapeHtml(a.expire || "")}</div><div class="small">${statusPillAccount(a)}</div></td>
         <td class="right mono">${d === null ? "—" : fmt0(d)}</td>
-        <td class="right mono">${hrs === null ? "—" : fmt0(hrs)}</td>
         <td><input type="checkbox" ${a.collect === "YES" ? "checked" : ""} data-act="collect" data-id="${a.id}" /></td>
         <td><span class="pill ${countdownPillClass(a)}">${escapeHtml(timeLeftLabel(a.expire))}</span></td>
         <td class="right mono">${fmt0(+a.profiles || 0)}</td>
@@ -1244,3 +1260,9 @@ if (loginForm) {
     doLogin();
   });
 }
+
+// ✅ Inicializar menú lateral al cargar
+setupSideMenu();
+
+// ✅ Render inicial (por si hay datos locales / UI)
+renderAll();
