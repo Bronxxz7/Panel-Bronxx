@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Panel Bronx</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
@@ -28,41 +28,49 @@
     </div>
   </div>
 
+  <!-- OVERLAY + MENÚ LATERAL -->
+  <div id="sideMenu" class="sideMenu" aria-hidden="true">
+    <aside class="sideMenuContent" role="dialog" aria-modal="true" aria-label="Menú">
+      <div class="sideTop">
+        <div class="sideTitle">MENÚ</div>
+        <button class="sideClose" id="btnCloseMenu" type="button" aria-label="Cerrar">✕</button>
+      </div>
+
+      <div class="sideDivider"></div>
+
+      <div class="sideGroup">
+        <div class="sideLabel">Secciones</div>
+        <button class="sideItem tabBtn" data-tab="tabDashboard" type="button">Dashboard</button>
+        <button class="sideItem tabBtn" data-tab="tabAccounts" type="button">Cuentas/Ventas</button>
+        <button class="sideItem tabBtn" data-tab="tabExpenses" type="button">Gastos</button>
+        <button class="sideItem tabBtn" data-tab="tabAnalytics" type="button">Analítica</button>
+      </div>
+
+      <div class="sideDivider"></div>
+
+      <div class="sideGroup">
+        <div class="sideLabel">Paneles</div>
+        <button class="sideItem" id="btnToggleKpisSide" type="button">👁️ KPIs</button>
+        <button class="sideItem" id="btnToggleChartsSide" type="button">👁️ Gráficos</button>
+        <button class="sideItem" id="btnToggleTablesSide" type="button">👁️ Tablas</button>
+      </div>
+    </aside>
+  </div>
+
   <header class="top">
+    <!-- BOTÓN HAMBURGUESA -->
+    <button class="menuBtn" id="btnMenu" type="button" aria-label="Abrir menú">☰</button>
+
     <div class="wrap topbar">
       <div class="brand">
         <div class="logo">📊</div>
         <div>
           <div class="title">PANEL BRONX</div>
-          <div class="subtitle">Alguien está sentado hoy a la sombra porque alguien plantó un árbol hace mucho tiempo.</div>
+          <div class="subtitle">
+            Alguien está sentado hoy a la sombra porque alguien plantó un árbol hace mucho tiempo.
+          </div>
         </div>
       </div>
-
-      <div class="actions">
-        <button class="btn primary" id="btnNewAccount" type="button">+ Nueva cuenta</button>
-        <button class="btn" id="btnNewExpense" type="button">+ Nuevo gasto</button>
-        <button class="btn" id="btnImportCsvBtn" type="button">⤒ Importar CSV (Excel)</button>
-        <button class="btn ok" id="btnBackup" type="button">💾 Descargar respaldo</button>
-        <button class="btn danger" id="btnLogout" type="button">Salir</button>
-      </div>
-    </div>
-
-    <div class="wrap nav">
-      <button class="tab active" data-tab="tabDashboard" type="button">Dashboard</button>
-      <button class="tab" data-tab="tabAccounts" type="button">Cuentas/Ventas</button>
-      <button class="tab" data-tab="tabExpenses" type="button">Gastos</button>
-      <button class="tab" data-tab="tabAnalytics" type="button">Analítica</button>
-
-      <div class="spacer"></div>
-
-      <button class="btn tiny" id="btnToggleKpis" type="button">👁️ KPIs</button>
-      <button class="btn tiny" id="btnToggleCharts" type="button">👁️ Gráficos</button>
-      <button class="btn tiny" id="btnToggleTables" type="button">👁️ Tablas</button>
-    </div>
-  </header>
-
-  <main class="wrap">
-    <!-- DASHBOARD -->
     <section id="tabDashboard" class="tabPage">
       <section class="kpis" id="kpiPanel">
         <div class="kpi"><div class="kpiLabel">Ingresos (ventas)</div><div class="kpiValue" id="kpiSales">—</div><div class="kpiHint">Suma de “Precio venta”</div></div>
@@ -166,7 +174,6 @@
                 <th class="right">Ganancia</th>
                 <th>Expira</th>
                 <th class="right">Días</th>
-                <th class="right">Horas</th>
                 <th>Cobrar</th>
                 <th>Cuenta atrás</th>
                 <th class="right">Perfiles</th>
@@ -356,9 +363,6 @@
     <div class="x" id="toastX">✕</div>
   </div>
 
-  <!-- ✅ IMPORTANTE: QUITAMOS el script inline que inicializaba Firebase.
-       Solo cargamos tu app.js (que ya inicializa Firebase dentro). -->
   <script type="module" src="./app.js"></script>
-
 </body>
 </html>
