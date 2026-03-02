@@ -1,3 +1,7 @@
+
+
+
+
 <!doctype html>
 <html lang="es">
 <head>
@@ -8,9 +12,13 @@
 </head>
 <body>
 
+  <!-- BACKDROP (fondo + overlay) -->
+  <div class="bg"></div>
+  <div class="bgOverlay"></div>
+
   <!-- LOGIN -->
   <div class="loginScreen" id="loginScreen">
-    <div class="loginBox">
+    <div class="loginBox glass">
       <h2>🔐 Iniciar sesión</h2>
 
       <label>Correo</label>
@@ -23,7 +31,7 @@
       <p class="loginError" id="loginError"></p>
 
       <p class="small muted" style="margin-top:10px;">
-        Si es tu primera vez: Contactese con Bronx para activar su cuenta.
+        Si es tu primera vez: Contáctese con Bronx para activar su cuenta.
       </p>
     </div>
   </div>
@@ -49,16 +57,26 @@
       <div class="sideDivider"></div>
 
       <div class="sideGroup">
-        <div class="sideLabel">Paneles</div>
-        <button class="sideItem" id="btnToggleKpisSide" type="button">👁️ KPIs</button>
+        <div class="sideLabel">Paneles (Dashboard)</div>
+        <button class="sideItem" id="btnToggleTablesSide" type="button">👁️ Resumen</button>
+        <button class="sideItem" id="btnToggleKpisSide" type="button">👁️ Detallado</button>
         <button class="sideItem" id="btnToggleChartsSide" type="button">👁️ Gráficos</button>
-        <button class="sideItem" id="btnToggleTablesSide" type="button">👁️ Tablas</button>
+        
+      </div>
+
+      <div class="sideDivider"></div>
+
+      <div class="sideGroup">
+        <div class="sideLabel">Datos</div>
+        <button class="sideItem" id="btnBackup" type="button">💾 Backup JSON</button>
+        <button class="sideItem" id="btnImportCsvBtn" type="button">📥 Importar CSV</button>
+        <button class="sideItem danger" id="btnLogout" type="button">🚪 Cerrar sesión</button>
       </div>
     </aside>
   </div>
 
+  <!-- TOP HEADER -->
   <header class="top">
-    <!-- BOTÓN HAMBURGUESA -->
     <button class="menuBtn" id="btnMenu" type="button" aria-label="Abrir menú">☰</button>
 
     <div class="wrap topbar">
@@ -71,63 +89,77 @@
           </div>
         </div>
       </div>
+
+      <!-- Tabs (desktop) -->
+      <nav class="nav desktopOnly">
+        <button class="tab active" data-tab="tabDashboard" type="button">Dashboard</button>
+        <button class="tab" data-tab="tabAccounts" type="button">Cuentas</button>
+        <button class="tab" data-tab="tabExpenses" type="button">Gastos</button>
+        <button class="tab" data-tab="tabAnalytics" type="button">Analítica</button>
+      </nav>
+
+      <div class="actions desktopOnly">
+        <button class="btn tiny" id="btnToggleKpis" type="button">KPIs</button>
+        <button class="btn tiny" id="btnToggleCharts" type="button">Gráficos</button>
+        <button class="btn tiny" id="btnToggleTables" type="button">Resumen</button>
+        <span class="spacer"></span>
+        <button class="btn tiny" id="btnBackupTop" type="button">Backup</button>
+        <button class="btn tiny" id="btnImportCsvBtnTop" type="button">Import CSV</button>
+        <button class="btn danger tiny" id="btnLogoutTop" type="button">Salir</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- DASHBOARD -->
     <section id="tabDashboard" class="tabPage">
       <section class="kpis" id="kpiPanel">
-        <div class="kpi"><div class="kpiLabel">Ingresos (ventas)</div><div class="kpiValue" id="kpiSales">—</div><div class="kpiHint">Suma de “Precio venta”</div></div>
-        <div class="kpi"><div class="kpiLabel">Costos (compra)</div><div class="kpiValue" id="kpiCosts">—</div><div class="kpiHint">Suma de “Costo compra”</div></div>
-        <div class="kpi"><div class="kpiLabel">Gastos</div><div class="kpiValue" id="kpiExpenses">—</div><div class="kpiHint">Suma de gastos</div></div>
-        <div class="kpi"><div class="kpiLabel">Ganancia neta</div><div class="kpiValue" id="kpiNet">—</div><div class="kpiHint">(Ventas − Costos − Gastos)</div></div>
-        <div class="kpi"><div class="kpiLabel">Por vencer</div><div class="kpiValue" id="kpiExpSoon">—</div><div class="kpiHint">Días ≤ alerta y ≥ 0</div></div>
-        <div class="kpi"><div class="kpiLabel">Vencidas</div><div class="kpiValue" id="kpiExpired">—</div><div class="kpiHint">Días &lt; 0</div></div>
-        <div class="kpi"><div class="kpiLabel">Más vendida (7 días)</div><div class="kpiValue" id="kpiTop7">—</div><div class="kpiHint">por cantidad</div></div>
-        <div class="kpi"><div class="kpiLabel">Más vendida (30 días)</div><div class="kpiValue" id="kpiTop30">—</div><div class="kpiHint">por cantidad</div></div>
+        <div class="kpi glass"><div class="kpiLabel">Ingresos (ventas)</div><div class="kpiValue" id="kpiSales">—</div><div class="kpiHint">Suma de “Precio venta”</div></div>
+        <div class="kpi glass"><div class="kpiLabel">Costos (compra)</div><div class="kpiValue" id="kpiCosts">—</div><div class="kpiHint">Suma de “Costo compra”</div></div>
+        <div class="kpi glass"><div class="kpiLabel">Gastos</div><div class="kpiValue" id="kpiExpenses">—</div><div class="kpiHint">Suma de gastos</div></div>
+        <div class="kpi glass"><div class="kpiLabel">Ganancia neta</div><div class="kpiValue" id="kpiNet">—</div><div class="kpiHint">(Ventas − Costos − Gastos)</div></div>
+        <div class="kpi glass"><div class="kpiLabel">Por vencer</div><div class="kpiValue" id="kpiExpSoon">—</div><div class="kpiHint">Días ≤ alerta y ≥ 0</div></div>
+        <div class="kpi glass"><div class="kpiLabel">Vencidas</div><div class="kpiValue" id="kpiExpired">—</div><div class="kpiHint">Días &lt; 0</div></div>
+        <div class="kpi glass"><div class="kpiLabel">Más vendida (7 días)</div><div class="kpiValue" id="kpiTop7">—</div><div class="kpiHint">por cantidad</div></div>
+        <div class="kpi glass"><div class="kpiLabel">Más vendida (30 días)</div><div class="kpiValue" id="kpiTop30">—</div><div class="kpiHint">por cantidad</div></div>
       </section>
 
-      <section class="card" id="chartPanel">
+      <section class="card glass" id="chartPanel">
         <div class="cardHead">
           <h2>Gráficos</h2>
           <div class="toolbar"><span class="chip" id="chartHint">Últimos 7 y 30 días</span></div>
         </div>
         <div class="cardBody">
           <div class="chartGrid">
-            <div class="chartBox">
+            <div class="chartBox glass2">
               <div class="chartTitle">Ventas por categoría (últimos 7 días)</div>
-              <canvas id="chartSales7" width="600" height="240"></canvas>
+              <canvas id="chartSales7" width="700" height="260"></canvas>
             </div>
-            <div class="chartBox">
+            <div class="chartBox glass2">
               <div class="chartTitle">Ventas por categoría (últimos 30 días)</div>
-              <canvas id="chartSales30" width="600" height="240"></canvas>
+              <canvas id="chartSales30" width="700" height="260"></canvas>
             </div>
-            <div class="chartBox">
+            <div class="chartBox glass2">
               <div class="chartTitle">Gastos por categoría (últimos 30 días)</div>
-              <canvas id="chartExpenses30" width="600" height="240"></canvas>
+              <canvas id="chartExpenses30" width="700" height="260"></canvas>
             </div>
           </div>
           <p class="small muted">Tip: si no ves barras es porque aún no hay datos.</p>
         </div>
       </section>
 
-      <section class="card" id="tablePanel">
+      <section class="card glass" id="tablePanel">
         <div class="cardHead">
           <h2>Resumen rápido</h2>
           <div class="toolbar"><span class="chip" id="countChipDash">—</span></div>
         </div>
-        <section class="card">
-  <div class="cardHead">
-    <h2>Acciones</h2>
-    <div class="toolbar">
-      <button class="btn primary" id="btnNewAccount" type="button">➕ Cuenta nueva</button>
-      <button class="btn" id="btnImportCsvBtn" type="button">📥 Importar CSV</button>
-      <button class="btn" id="btnBackup" type="button">💾 Respaldo</button>
-    </div>
-  </div>
-</section>
         <div class="cardBody">
           <div class="row">
-            <div class="miniCard"><div class="miniTitle">Cuentas registradas</div><div class="miniValue" id="miniAccounts">—</div><div class="miniHint">total</div></div>
-            <div class="miniCard"><div class="miniTitle">Gastos registrados</div><div class="miniValue" id="miniExpenses">—</div><div class="miniHint">total</div></div>
-            <div class="miniCard"><div class="miniTitle">Pendiente “Cobrar”</div><div class="miniValue" id="miniCollect">—</div><div class="miniHint">marcados</div></div>
-            <div class="miniCard"><div class="miniTitle">Vence hoy / mañana</div><div class="miniValue" id="miniUrgent">—</div><div class="miniHint">días ≤ 1</div></div>
+            <div class="miniCard glass2"><div class="miniTitle">Cuentas registradas</div><div class="miniValue" id="miniAccounts">—</div><div class="miniHint">total</div></div>
+            <div class="miniCard glass2"><div class="miniTitle">Gastos registrados</div><div class="miniValue" id="miniExpenses">—</div><div class="miniHint">total</div></div>
+            <div class="miniCard glass2"><div class="miniTitle">Pendiente “Cobrar”</div><div class="miniValue" id="miniCollect">—</div><div class="miniHint">marcados</div></div>
+            <div class="miniCard glass2"><div class="miniTitle">Vence hoy / mañana</div><div class="miniValue" id="miniUrgent">—</div><div class="miniHint">días ≤ 1</div></div>
           </div>
         </div>
       </section>
@@ -135,9 +167,18 @@
 
     <!-- CUENTAS -->
     <section id="tabAccounts" class="tabPage hidden">
-      <section class="card">
+      <section class="card glass">
         <div class="cardHead">
-          <h2>Filtros Cuentas</h2>
+          <h2>Cuentas</h2>
+          <div class="toolbar">
+            <button class="btn primary" id="btnNewAccount" type="button">➕ Cuenta nueva</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card glass">
+        <div class="cardHead">
+          <h2>Filtros</h2>
           <div class="muted small">Busca por nombre, celular, correo, proveedor, categoría, URL, etc.</div>
         </div>
         <div class="cardBody">
@@ -164,7 +205,19 @@
         </div>
       </section>
 
-      <section class="card">
+      <!-- LISTA MOBILE (tarjetas resumidas) -->
+      <section class="card glass mobileOnly">
+        <div class="cardHead">
+          <h2>Lista (móvil)</h2>
+          <div class="toolbar"><span class="chip" id="countChipAccMobile">0</span></div>
+        </div>
+        <div class="cardBody">
+          <div id="cardsAcc" class="cardsList"></div>
+        </div>
+      </section>
+
+      <!-- TABLA DESKTOP -->
+      <section class="card glass desktopOnly">
         <div class="cardHead">
           <h2>Tabla de Cuentas</h2>
           <div class="toolbar"><span class="chip" id="countChipAcc">0</span></div>
@@ -199,9 +252,18 @@
 
     <!-- GASTOS -->
     <section id="tabExpenses" class="tabPage hidden">
-      <section class="card">
+      <section class="card glass">
         <div class="cardHead">
-          <h2>Filtros Gastos</h2>
+          <h2>Gastos</h2>
+          <div class="toolbar">
+            <button class="btn primary" id="btnNewExpense" type="button">➕ Gasto nuevo</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card glass">
+        <div class="cardHead">
+          <h2>Filtros</h2>
           <div class="muted small">Anota gastos como quieras.</div>
         </div>
         <div class="cardBody">
@@ -219,14 +281,14 @@
         </div>
       </section>
 
-      <section class="card">
+      <section class="card glass">
         <div class="cardHead">
           <h2>Tabla de Gastos</h2>
           <div class="toolbar"><span class="chip" id="countChipExp">0</span></div>
         </div>
 
         <div class="tableWrap">
-          <table>
+          <table class="min700">
             <thead>
               <tr>
                 <th>Fecha</th>
@@ -245,7 +307,7 @@
 
     <!-- ANALÍTICA -->
     <section id="tabAnalytics" class="tabPage hidden">
-      <section class="card">
+      <section class="card glass">
         <div class="cardHead">
           <h2>Analítica</h2>
           <div class="muted small">Lo más vendido y tendencias por fechas.</div>
@@ -263,9 +325,9 @@
 
           <div class="divider"></div>
 
-          <div class="chartBox">
+          <div class="chartBox glass2">
             <div class="chartTitle" id="aTitle">Top categorías</div>
-            <canvas id="chartTopCats" width="900" height="280"></canvas>
+            <canvas id="chartTopCats" width="900" height="300"></canvas>
           </div>
 
           <p class="small muted">Esta analítica usa la fecha de registro.</p>
@@ -274,9 +336,9 @@
     </section>
   </main>
 
-  <!-- MODAL CUENTA -->
+  <!-- MODAL CUENTA (editar) -->
   <div class="modalBackdrop" id="modalAccBack">
-    <div class="modal">
+    <div class="modal glass">
       <div class="modalHead">
         <div class="modalTitle" id="modalAccTitle">Nueva cuenta</div>
         <div class="modalActions">
@@ -299,7 +361,7 @@
 
         <div class="divider"></div>
 
-        <div class="subcard" id="boxStreaming">
+        <div class="subcard glass2" id="boxStreaming">
           <div class="subHead"><h3>Campos Streaming</h3><span class="small muted">PIN / Correo / Clave</span></div>
           <div class="row">
             <div><label>PIN</label><input id="mPin" type="text" /></div>
@@ -309,7 +371,7 @@
           </div>
         </div>
 
-        <div class="subcard hidden" id="boxIPTV">
+        <div class="subcard glass2 hidden" id="boxIPTV">
           <div class="subHead"><h3>Campos IPTV</h3><span class="small muted">Usuario / Clave / URL</span></div>
           <div class="row">
             <div><label>Usuario</label><input id="mUser" type="text" /></div>
@@ -341,9 +403,23 @@
     </div>
   </div>
 
+  <!-- MODAL DETALLE (ver) -->
+  <div class="modalBackdrop" id="modalViewBack">
+    <div class="modal glass">
+      <div class="modalHead">
+        <div class="modalTitle">Detalle de la cuenta</div>
+        <div class="modalActions">
+          <button class="btn" id="btnViewClose" type="button">Cerrar</button>
+          <button class="btn primary" id="btnViewEdit" type="button">Editar</button>
+        </div>
+      </div>
+      <div class="modalBody" id="modalViewBody"></div>
+    </div>
+  </div>
+
   <!-- MODAL GASTO -->
   <div class="modalBackdrop" id="modalExpBack">
-    <div class="modal">
+    <div class="modal glass">
       <div class="modalHead">
         <div class="modalTitle" id="modalExpTitle">Nuevo gasto</div>
         <div class="modalActions">
@@ -368,13 +444,11 @@
   <input id="fileImportCsv" type="file" accept=".csv,text/csv" hidden />
 
   <!-- TOAST -->
-  <div class="toast" id="toast">
+  <div class="toast glass" id="toast">
     <div class="msg" id="toastMsg"></div>
     <div class="x" id="toastX">✕</div>
   </div>
 
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="./script.js"></script>
 </body>
 </html>
-
-
