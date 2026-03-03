@@ -11,7 +11,7 @@ import {
 // =======================
 // Firebase Config
 // =======================
-const firebaseConfig = {
+  const firebaseConfig = {
   apiKey: "AIzaSyD-W21i17SvUKZzxjFp-VAUsSNq7bTGOmA",
   authDomain: "panelbronxx.firebaseapp.com",
   projectId: "panelbronxx",
@@ -1493,4 +1493,5 @@ $("fileImportCsv")?.addEventListener("change", async (e) => {
 
 // ✅ Render inicial
 renderAll();
+
 
