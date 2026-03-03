@@ -154,32 +154,42 @@ function setupSideMenu() {
 setupSideMenu();
 
 // =======================
-// Login / Logout
+// Logout (FORZADO + DEBUG)
 // =======================
-async function doLogin() {
-  $("loginError") && ($("loginError").textContent = "");
-  const email = ($("loginEmail")?.value || "").trim();
-  const pass = $("loginPass")?.value || "";
+async function doLogout(ev) {
+  // evita submit / navegación
+  if (ev?.preventDefault) ev.preventDefault();
+  if (ev?.stopPropagation) ev.stopPropagation();
 
-  if (!email || !pass) {
-    toast("Completa correo y contraseña");
-    return;
-  }
+  console.log("[LOGOUT] click recibido. currentUser=", auth.currentUser?.uid);
 
   try {
-    await signInWithEmailAndPassword(auth, email, pass);
-    toast("Login correcto ✅");
+    await signOut(auth);
+    console.log("[LOGOUT] signOut() OK. currentUser=", auth.currentUser);
+    toast("Sesión cerrada ✅");
+
+    // Por si la UI se queda “pegada” por cache/estado
+    setTimeout(() => location.reload(), 250);
   } catch (e) {
-    console.error("LOGIN ERROR:", e);
-    const code = e?.code || "unknown";
-    $("loginError") && ($("loginError").textContent = `Error: ${code}`);
-    toast(`Error: ${code}`);
+    console.error("[LOGOUT] ERROR:", e);
+    toast(`Error logout: ${e?.code || "unknown"}`);
+    alert(`Logout error: ${e?.code || "unknown"}\n${e?.message || ""}`);
   }
 }
 
-$("btnLogin")?.addEventListener("click", doLogin);
-$("loginPass")?.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") doLogin();
+// OJO: estos botones deben ser type="button" en tu HTML
+["btnLogout", "btnLogoutTop", "btnCloseSession", "logoutBtn"].forEach((id) => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener("click", doLogout, { capture: true });
+    console.log("[LOGOUT] listener agregado a:", id);
+  }
+});
+
+// Extra: si tu botón es un <a> o está dentro de algo raro, esto igual lo captura
+document.addEventListener("click", (e) => {
+  const t = e.target?.closest?.("[data-logout]");
+  if (t) doLogout(e);
 });
 
 // =======================
@@ -1445,6 +1455,4 @@ $("fileImportCsv")?.addEventListener("change", async (e) => {
 });
 
 // ✅ Render inicial
-renderAll();  
-
-
+renderAll();
