@@ -26,7 +26,44 @@ const auth = getAuth(app);
 const fs = getFirestore(app);
 
 const $ = (id) => document.getElementById(id);
+async function doLogin() {
+  const email = ($("loginEmail")?.value || "").trim();
+  const pass  = ($("loginPass")?.value || "").trim();
+  const errEl = $("loginError");
 
+  if (errEl) errEl.textContent = "";
+
+  if (!email || !pass) {
+    if (errEl) errEl.textContent = "Completa correo y contraseña.";
+    return;
+  }
+
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+    // onAuthStateChanged se encargará de ocultar loginScreen
+  } catch (e) {
+    console.error("[LOGIN] error:", e);
+    const code = e?.code || "";
+    const msg =
+      code === "auth/invalid-credential" ? "Correo o contraseña incorrectos." :
+      code === "auth/user-not-found" ? "Usuario no existe." :
+      code === "auth/wrong-password" ? "Contraseña incorrecta." :
+      code === "auth/too-many-requests" ? "Demasiados intentos. Espera un momento." :
+      `Error: ${code || "desconocido"}`;
+
+    if (errEl) errEl.textContent = msg;
+    toast(msg);
+  }
+}
+
+$("btnLogin")?.addEventListener("click", doLogin);
+
+// Enter para iniciar sesión
+["loginEmail", "loginPass"].forEach((id) => {
+  $(id)?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") doLogin();
+  });
+});
 // =======================
 // Helpers
 // =======================
@@ -1456,3 +1493,4 @@ $("fileImportCsv")?.addEventListener("change", async (e) => {
 
 // ✅ Render inicial
 renderAll();
+
