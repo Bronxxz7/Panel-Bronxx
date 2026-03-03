@@ -161,22 +161,26 @@ async function doLogin() {
   const email = ($("loginEmail")?.value || "").trim();
   const pass = $("loginPass")?.value || "";
 
+  if (!email || !pass) {
+    toast("Completa correo y contraseña");
+    return;
+  }
+
   try {
     await signInWithEmailAndPassword(auth, email, pass);
+    toast("Login correcto ✅");
   } catch (e) {
-    console.error("LOGIN ERROR:", e.code, e.message);
-    $("loginError") && ($("loginError").textContent = `Error: ${e.code}`);
-    toast(`Error: ${e.code}`);
+    console.error("LOGIN ERROR:", e);
+    const code = e?.code || "unknown";
+    $("loginError") && ($("loginError").textContent = `Error: ${code}`);
+    toast(`Error: ${code}`);
   }
 }
-$("btnLogin")?.addEventListener("click", doLogin);
-$("loginPass")?.addEventListener("keydown", (e) => e.key === "Enter" && doLogin());
 
-async function doLogout() {
-  try { await signOut(auth); } catch (e) { console.error("Logout error:", e); }
-}
-$("btnLogout")?.addEventListener("click", doLogout);
-$("btnLogoutTop")?.addEventListener("click", doLogout);
+$("btnLogin")?.addEventListener("click", doLogin);
+$("loginPass")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") doLogin();
+});
 
 // =======================
 // Profile / Firestore Subscriptions
@@ -1442,4 +1446,5 @@ $("fileImportCsv")?.addEventListener("change", async (e) => {
 
 // ✅ Render inicial
 renderAll();  
+
 
