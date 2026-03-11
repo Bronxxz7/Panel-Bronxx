@@ -8,10 +8,10 @@ import {
   query, orderBy, onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-// =======================
-// Firebase Config
-// =======================
-  const firebaseConfig = {
+/* =======================
+   FIREBASE
+======================= */
+const firebaseConfig = {
   apiKey: "AIzaSyD-W21i17SvUKZzxjFp-VAUsSNq7bTGOmA",
   authDomain: "panelbronxx.firebaseapp.com",
   projectId: "panelbronxx",
@@ -26,9 +26,217 @@ const auth = getAuth(app);
 const fs = getFirestore(app);
 
 const $ = (id) => document.getElementById(id);
+
+/* =======================
+   HELPERS
+======================= */
+function fmt(n, d = 2) {
+  if (!Number.isFinite(n)) return "—";
+  return n.toLocaleString(undefined, {
+    minimumFractionDigits: d,
+    maximumFractionDigits: d
+  });
+}
+
+function fmt0(n) {
+  if (!Number.isFinite(n)) return "—";
+  return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
+
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function toast(msg) {
+  const elToast = $("toast");
+  const elMsg = $("toastMsg");
+  if (!elToast || !elMsg) return;
+
+  elMsg.textContent = msg;
+  elToast.style.display = "flex";
+
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => {
+    elToast.style.display = "none";
+  }, 3200);
+}
+
+$("toastX")?.addEventListener("click", () => {
+  if ($("toast")) $("toast").style.display = "none";
+});
+
+function todayISO() {
+  const d = new Date();
+  const off = d.getTimezoneOffset();
+  const local = new Date(d.getTime() - off * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+function daysUntil(dateISO) {
+  if (!dateISO) return null;
+  const target = new Date(`${dateISO}T00:00:00`);
+  const today = new Date(`${todayISO()}T00:00:00`);
+  return Math.floor((target - today) / (1000 * 60 * 60 * 24));
+}
+
+function addDaysISO(dateISO, days) {
+  if (!dateISO) return "";
+  const d = new Date(`${dateISO}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  const off = d.getTimezoneOffset();
+  const local = new Date(d.getTime() - off * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+function normalizePhone(phone) {
+  return String(phone || "").replace(/\D/g, "");
+}
+
+function isIPTVCategory(cat) {
+  return String(cat || "").trim().toUpperCase() === "IPTV";
+}
+
+function endOfDayISO(dateISO) {
+  if (!dateISO) return null;
+  return new Date(`${dateISO}T23:59:59`);
+}
+
+function timeLeftLabel(dateISO) {
+  const end = endOfDayISO(dateISO);
+  if (!end) return "—";
+
+  const now = new Date();
+  let diff = end.getTime() - now.getTime();
+  const past = diff < 0;
+  diff = Math.abs(diff);
+
+  const totalHours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+
+  const base = `${days}d ${hours}h`;
+  return past ? `VENCIDA ${base}` : base;
+}
+
+function tsToISO(ts) {
+  if (!ts) return null;
+  if (typeof ts.toDate === "function") return ts.toDate().toISOString();
+  return null;
+}
+
+function normalizeCategoryName(cat) {
+  const value = String(cat || "").trim().toLowerCase();
+
+  const map = {
+    "netflix": "Netflix",
+    "hbo": "HBO",
+    "max": "HBO",
+    "disney": "Disney",
+    "disney+": "Disney",
+    "prime": "Prime Video",
+    "prime video": "Prime Video",
+    "amazon prime": "Prime Video",
+    "yt premium": "YouTube Premium",
+    "youtube premium": "YouTube Premium",
+    "spotify": "Spotify",
+    "crunchyroll": "Crunchyroll",
+    "paramount": "Paramount",
+    "paramount+": "Paramount",
+    "vix": "ViX",
+    "canva": "Canva",
+    "iptv": "IPTV"
+  };
+
+  return map[value] || String(cat || "").trim();
+}
+
+function getRenewalStatus(a) {
+  const d = daysUntil(a.expire);
+  if (d === null) return null;
+  if (d < 0) return "EXPIRED";
+
+  const alertDays = +a.alertDays || 0;
+  if (d <= alertDays) return "SOON";
+
+  return "OK";
+}
+
+function getValue(id, fallback = "") {
+  const el = $(id);
+  return el ? el.value : fallback;
+}
+
+function setValue(id, value) {
+  const el = $(id);
+  if (el) el.value = value;
+}
+
+function buildPlanLines(a) {
+  const lines = [];
+
+  if (a.accountName) lines.push(a.accountName);
+  else if (a.plan) lines.push(a.plan);
+  else if (a.notes) lines.push(...String(a.notes).trim().split(/\n+/).slice(0, 4));
+  else lines.push(normalizeCategoryName(a.category) || "Cuenta");
+
+  return lines.join("\n");
+}
+
+function formatExpireDisplay(dateISO) {
+  if (!dateISO) return "—";
+  const [y, m, d] = dateISO.split("-");
+  if (!y || !m || !d) return dateISO;
+  return `${d}/${m}/${y}`;
+}
+
+function getAccountDisplayName(a) {
+  if (a.accountName?.trim()) return a.accountName.trim();
+  if (a.email?.trim()) return a.email.trim();
+  if (a.user?.trim()) return a.user.trim();
+  if (a.plan?.trim()) return a.plan.trim();
+  return "—";
+}
+
+function getClientDisplayName(a) {
+  return String(a.profileName || "").trim() || "—";
+}
+
+/* =======================
+   STATE
+======================= */
+let currentUser = null;
+let currentProfile = null;
+let tenantId = null;
+
+let db = {
+  accounts: [],
+  expenses: []
+};
+
+let unsubAccounts = null;
+let unsubExpenses = null;
+
+let editingAccId = null;
+let editingExpId = null;
+let viewingAccId = null;
+
+let uiToggles = {
+  kpis: true,
+  charts: true,
+  tables: true
+};
+
+/* =======================
+   AUTH
+======================= */
 async function doLogin() {
-  const email = ($("loginEmail")?.value || "").trim();
-  const pass  = ($("loginPass")?.value || "").trim();
+  const email = (getValue("loginEmail") || "").trim();
+  const pass = (getValue("loginPass") || "").trim();
   const errEl = $("loginError");
 
   if (errEl) errEl.textContent = "";
@@ -40,7 +248,6 @@ async function doLogin() {
 
   try {
     await signInWithEmailAndPassword(auth, email, pass);
-    // onAuthStateChanged se encargará de ocultar loginScreen
   } catch (e) {
     console.error("[LOGIN] error:", e);
     const code = e?.code || "";
@@ -58,180 +265,39 @@ async function doLogin() {
 
 $("btnLogin")?.addEventListener("click", doLogin);
 
-// Enter para iniciar sesión
 ["loginEmail", "loginPass"].forEach((id) => {
   $(id)?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") doLogin();
   });
 });
-// =======================
-// Helpers
-// =======================
-function fmt(n, d = 2) {
-  if (!Number.isFinite(n)) return "—";
-  return n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
-}
-function fmt0(n) {
-  if (!Number.isFinite(n)) return "—";
-  return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-}
-function escapeHtml(s) {
-  return String(s ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-function toast(msg) {
-  const elToast = $("toast");
-  const elMsg = $("toastMsg");
-  if (!elToast || !elMsg) return;
 
-  elMsg.textContent = msg;
-  elToast.style.display = "flex";
-  clearTimeout(window.__t);
-  window.__t = setTimeout(() => (elToast.style.display = "none"), 3200);
-}
-$("toastX")?.addEventListener("click", () => $("toast") && ($("toast").style.display = "none"));
-
-function todayISO() {
-  const d = new Date();
-  const off = d.getTimezoneOffset();
-  const local = new Date(d.getTime() - off * 60000);
-  return local.toISOString().slice(0, 10);
-}
-function daysUntil(dateISO) {
-  if (!dateISO) return null;
-  const a = new Date(dateISO + "T00:00:00");
-  const b = new Date(todayISO() + "T00:00:00");
-  return Math.floor((a - b) / (1000 * 60 * 60 * 24));
-}
-function addDaysISO(dateISO, days) {
-  if (!dateISO) return "";
-  const d = new Date(dateISO + "T00:00:00");
-  d.setDate(d.getDate() + days);
-  const off = d.getTimezoneOffset();
-  const local = new Date(d.getTime() - off * 60000);
-  return local.toISOString().slice(0, 10);
-}
-function normalizePhone(phone) {
-  return String(phone || "").replace(/\D/g, "");
-}
-function isIPTVCategory(cat) {
-  return String(cat || "").trim().toUpperCase() === "IPTV";
-}
-
-// Cuenta atrás
-function endOfDayISO(dateISO) {
-  if (!dateISO) return null;
-  return new Date(dateISO + "T23:59:59");
-}
-function timeLeftLabel(dateISO) {
-  const end = endOfDayISO(dateISO);
-  if (!end) return "—";
-  const now = new Date();
-  let diff = end.getTime() - now.getTime();
-  const past = diff < 0;
-  diff = Math.abs(diff);
-
-  const totalMinutes = Math.floor(diff / (1000 * 60));
-  const days = Math.floor(totalMinutes / (60 * 24));
-  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
-  const mins = totalMinutes % 60;
-
-  const base = `${days}d ${hours}h ${mins}m`;
-  return past ? `VENCIDA (${base})` : base;
-}
-function tsToISO(ts) {
-  if (!ts) return null;
-  if (typeof ts.toDate === "function") return ts.toDate().toISOString();
-  return null;
-}
-
-// =======================
-// State
-// =======================
-let currentUser = null;
-let currentProfile = null;
-let tenantId = null;
-
-let db = { accounts: [], expenses: [] };
-let unsubAccounts = null;
-let unsubExpenses = null;
-
-// =======================
-// Side Menu
-// =======================
-function setupSideMenu() {
-  const btnMenu = $("btnMenu");
-  const overlay = $("sideMenu");
-  const btnClose = $("btnCloseMenu");
-  if (!btnMenu || !overlay) return;
-
-  const openMenu = () => overlay.classList.add("open");
-  const closeMenu = () => overlay.classList.remove("open");
-
-  btnMenu.addEventListener("click", openMenu);
-  btnClose?.addEventListener("click", closeMenu);
-
-  overlay.addEventListener("click", (e) => { if (e.target === overlay) closeMenu(); });
-
-  overlay.querySelectorAll("[data-tab]").forEach((b) => {
-    b.addEventListener("click", () => {
-      const target = b.getAttribute("data-tab");
-      if (!target) return;
-      openTab(target);
-      closeMenu();
-    });
-  });
-
-  window.addEventListener("keydown", (e) => e.key === "Escape" && closeMenu());
-}
-setupSideMenu();
-
-// =======================
-// Logout (FORZADO + DEBUG)
-// =======================
 async function doLogout(ev) {
-  // evita submit / navegación
   if (ev?.preventDefault) ev.preventDefault();
   if (ev?.stopPropagation) ev.stopPropagation();
 
-  console.log("[LOGOUT] click recibido. currentUser=", auth.currentUser?.uid);
-
   try {
     await signOut(auth);
-    console.log("[LOGOUT] signOut() OK. currentUser=", auth.currentUser);
     toast("Sesión cerrada ✅");
-
-    // Por si la UI se queda “pegada” por cache/estado
     setTimeout(() => location.reload(), 250);
   } catch (e) {
     console.error("[LOGOUT] ERROR:", e);
     toast(`Error logout: ${e?.code || "unknown"}`);
-    alert(`Logout error: ${e?.code || "unknown"}\n${e?.message || ""}`);
   }
 }
 
-// OJO: estos botones deben ser type="button" en tu HTML
 ["btnLogout", "btnLogoutTop", "btnCloseSession", "logoutBtn"].forEach((id) => {
-  const el = document.getElementById(id);
-  if (el) {
-    el.addEventListener("click", doLogout, { capture: true });
-    console.log("[LOGOUT] listener agregado a:", id);
-  }
+  const el = $(id);
+  if (el) el.addEventListener("click", doLogout, { capture: true });
 });
 
-// Extra: si tu botón es un <a> o está dentro de algo raro, esto igual lo captura
 document.addEventListener("click", (e) => {
-  const t = e.target?.closest?.("[data-logout]");
-  if (t) doLogout(e);
+  const target = e.target?.closest?.("[data-logout]");
+  if (target) doLogout(e);
 });
 
-// =======================
-// Profile / Firestore Subscriptions
-// =======================
+/* =======================
+   FIRESTORE PROFILE
+======================= */
 async function loadUserProfile(uid) {
   const ref = doc(fs, "users", uid);
   const snap = await getDoc(ref);
@@ -244,11 +310,13 @@ function subscribeTenantData(tid) {
 
   if (unsubAccounts) unsubAccounts();
   if (unsubExpenses) unsubExpenses();
+
   unsubAccounts = null;
   unsubExpenses = null;
 
   const accRef = collection(fs, "tenants", tid, "accounts");
   const accQ = query(accRef, orderBy("updatedAt", "desc"));
+
   unsubAccounts = onSnapshot(
     accQ,
     (ss) => {
@@ -257,12 +325,13 @@ function subscribeTenantData(tid) {
     },
     (err) => {
       console.error("Accounts snapshot error:", err);
-      toast("Error cargando cuentas (Firestore). Revisa consola/permisos/índices.");
+      toast("Error cargando cuentas.");
     }
   );
 
   const expRef = collection(fs, "tenants", tid, "expenses");
   const expQ = query(expRef, orderBy("updatedAt", "desc"));
+
   unsubExpenses = onSnapshot(
     expQ,
     (ss) => {
@@ -271,7 +340,7 @@ function subscribeTenantData(tid) {
     },
     (err) => {
       console.error("Expenses snapshot error:", err);
-      toast("Error cargando gastos (Firestore). Revisa consola/permisos/índices.");
+      toast("Error cargando gastos.");
     }
   );
 }
@@ -290,26 +359,64 @@ onAuthStateChanged(auth, async (u) => {
 
   if (!u) {
     unsubscribeAll();
-    $("loginScreen") && ($("loginScreen").style.display = "flex");
-    toast("Sesión cerrada.");
+    if ($("loginScreen")) $("loginScreen").style.display = "flex";
     renderAll();
     return;
   }
 
-  $("loginScreen") && ($("loginScreen").style.display = "none");
-  toast("Sesión iniciada ✅");
+  if ($("loginScreen")) $("loginScreen").style.display = "none";
 
   let profile = null;
-  try { profile = await loadUserProfile(u.uid); } catch (e) { console.error("Profile load error:", e); }
-  currentProfile = profile || { role: "user", name: "", tenantId: u.uid };
+  try {
+    profile = await loadUserProfile(u.uid);
+  } catch (e) {
+    console.error("Profile load error:", e);
+  }
 
-  // ✅ Cada usuario ve SOLO su info
-  subscribeTenantData(u.uid);
+  currentProfile = profile || { role: "user", name: "", tenantId: u.uid };
+  subscribeTenantData(currentProfile.tenantId || u.uid);
+  toast("Sesión iniciada ✅");
 });
 
-// =======================
-// Tabs
-// =======================
+/* =======================
+   SIDE MENU
+======================= */
+function setupSideMenu() {
+  const btnMenu = $("btnMenu");
+  const overlay = $("sideMenu");
+  const btnClose = $("btnCloseMenu");
+
+  if (!btnMenu || !overlay) return;
+
+  const openMenu = () => overlay.classList.add("open");
+  const closeMenu = () => overlay.classList.remove("open");
+
+  btnMenu.addEventListener("click", openMenu);
+  btnClose?.addEventListener("click", closeMenu);
+
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeMenu();
+  });
+
+  overlay.querySelectorAll("[data-tab]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const target = btn.getAttribute("data-tab");
+      if (!target) return;
+      openTab(target);
+      closeMenu();
+    });
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeMenu();
+  });
+}
+
+setupSideMenu();
+
+/* =======================
+   TABS
+======================= */
 function openTab(targetId) {
   document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
   const btn = document.querySelector(`.tab[data-tab="${targetId}"]`);
@@ -320,22 +427,34 @@ function openTab(targetId) {
 
   renderAll();
 }
+
 document.querySelectorAll(".tab").forEach((btn) => {
   btn.addEventListener("click", () => openTab(btn.dataset.tab));
 });
 
-// =======================
-// Dashboard toggles
-// =======================
-let uiToggles = { kpis: true, charts: true, tables: true };
+/* =======================
+   DASHBOARD TOGGLES
+======================= */
 function applyToggles() {
   $("kpiPanel")?.classList.toggle("hidden", !uiToggles.kpis);
   $("chartPanel")?.classList.toggle("hidden", !uiToggles.charts);
   $("tablePanel")?.classList.toggle("hidden", !uiToggles.tables);
 }
-function toggleKpis(){ uiToggles.kpis = !uiToggles.kpis; applyToggles(); }
-function toggleCharts(){ uiToggles.charts = !uiToggles.charts; applyToggles(); }
-function toggleTables(){ uiToggles.tables = !uiToggles.tables; applyToggles(); }
+
+function toggleKpis() {
+  uiToggles.kpis = !uiToggles.kpis;
+  applyToggles();
+}
+
+function toggleCharts() {
+  uiToggles.charts = !uiToggles.charts;
+  applyToggles();
+}
+
+function toggleTables() {
+  uiToggles.tables = !uiToggles.tables;
+  applyToggles();
+}
 
 $("btnToggleKpis")?.addEventListener("click", toggleKpis);
 $("btnToggleCharts")?.addEventListener("click", toggleCharts);
@@ -347,9 +466,9 @@ $("btnToggleTablesSide")?.addEventListener("click", toggleTables);
 
 applyToggles();
 
-// =======================
-// Models
-// =======================
+/* =======================
+   MODELS
+======================= */
 function blankAccount() {
   return {
     category: "",
@@ -382,6 +501,7 @@ function blankAccount() {
     createdBy: null
   };
 }
+
 function blankExpense() {
   return {
     date: todayISO(),
@@ -396,12 +516,18 @@ function blankExpense() {
   };
 }
 
-// =======================
-// Firestore CRUD
-// =======================
+/* =======================
+   FIRESTORE CRUD
+======================= */
 function requireTenant() {
-  if (!tenantId) { toast("No hay tenant cargado."); return false; }
-  if (!currentUser) { toast("No has iniciado sesión."); return false; }
+  if (!tenantId) {
+    toast("No hay tenant cargado.");
+    return false;
+  }
+  if (!currentUser) {
+    toast("No has iniciado sesión.");
+    return false;
+  }
   return true;
 }
 
@@ -413,22 +539,32 @@ async function addAccountFirestore(a) {
   a.createdBy = currentUser.uid;
   await addDoc(ref, a);
 }
+
 async function updateAccountFirestore(id, patch) {
   if (!requireTenant()) return;
   const ref = doc(fs, "tenants", tenantId, "accounts", id);
   patch.updatedAt = serverTimestamp();
   await updateDoc(ref, patch);
 }
+
 async function deleteAccountFirestore(id) {
   if (!requireTenant()) return;
   const ref = doc(fs, "tenants", tenantId, "accounts", id);
   await deleteDoc(ref);
 }
+
 async function renewAccountFirestore(id, currentExpire) {
   if (!requireTenant()) return;
+  if (!currentExpire) {
+    toast("Esta cuenta no tiene expiración.");
+    return;
+  }
   const ref = doc(fs, "tenants", tenantId, "accounts", id);
   const newExpire = addDaysISO(currentExpire, 30);
-  await updateDoc(ref, { expire: newExpire, updatedAt: serverTimestamp() });
+  await updateDoc(ref, {
+    expire: newExpire,
+    updatedAt: serverTimestamp()
+  });
 }
 
 async function addExpenseFirestore(e) {
@@ -439,105 +575,109 @@ async function addExpenseFirestore(e) {
   e.createdBy = currentUser.uid;
   await addDoc(ref, e);
 }
+
 async function updateExpenseFirestore(id, patch) {
   if (!requireTenant()) return;
   const ref = doc(fs, "tenants", tenantId, "expenses", id);
   patch.updatedAt = serverTimestamp();
   await updateDoc(ref, patch);
 }
+
 async function deleteExpenseFirestore(id) {
   if (!requireTenant()) return;
   const ref = doc(fs, "tenants", tenantId, "expenses", id);
   await deleteDoc(ref);
 }
 
-// =======================
-// Account Modal (editar)
-// =======================
-let editingAccId = null;
-
+/* =======================
+   ACCOUNT MODAL
+======================= */
 function syncCategoryUI() {
   const cat = $("mCategory")?.value;
   const iptv = isIPTVCategory(cat);
   $("boxIPTV")?.classList.toggle("hidden", !iptv);
   $("boxStreaming")?.classList.toggle("hidden", iptv);
 }
+
 $("mCategory")?.addEventListener("input", syncCategoryUI);
 
 function openAccModal(title) {
-  $("modalAccTitle") && ($("modalAccTitle").textContent = title);
-  $("modalAccBack") && ($("modalAccBack").style.display = "flex");
+  if ($("modalAccTitle")) $("modalAccTitle").textContent = title;
+  if ($("modalAccBack")) $("modalAccBack").style.display = "flex";
   syncCategoryUI();
 }
+
 function closeAccModal() {
-  $("modalAccBack") && ($("modalAccBack").style.display = "none");
+  if ($("modalAccBack")) $("modalAccBack").style.display = "none";
   editingAccId = null;
 }
+
 $("btnAccClose")?.addEventListener("click", closeAccModal);
-$("modalAccBack")?.addEventListener("click", (e) => e.target.id === "modalAccBack" && closeAccModal());
+$("modalAccBack")?.addEventListener("click", (e) => {
+  if (e.target.id === "modalAccBack") closeAccModal();
+});
 
 function setAccModalFromRow(a) {
-  $("mCategory").value = a.category || "";
-  $("mName").value = a.profileName || "";
-  $("mPhone").value = a.phone || "";
-  $("mProfiles").value = a.profiles ?? 1;
+  setValue("mCategory", a.category || "");
+  setValue("mName", a.profileName || "");
+  setValue("mPhone", a.phone || "");
+  setValue("mProfiles", a.profiles ?? 1);
 
-  $("mPin").value = a.pin || "";
-  $("mEmail").value = a.email || "";
-  $("mPass").value = a.pass || "";
-  $("mAccountName").value = a.accountName || "";
+  setValue("mPin", a.pin || "");
+  setValue("mEmail", a.email || "");
+  setValue("mPass", a.pass || "");
+  setValue("mAccountName", a.accountName || "");
 
-  $("mUser").value = a.user || "";
-  $("mIptvPass").value = a.iptvPass || "";
-  $("mUrl").value = a.url || "";
-  $("mPlan").value = a.plan || "";
+  setValue("mUser", a.user || "");
+  setValue("mIptvPass", a.iptvPass || "");
+  setValue("mUrl", a.url || "");
+  setValue("mPlan", a.plan || "");
 
-  $("mProvider").value = a.provider || "";
-  $("mBuyPrice").value = a.buyPrice ?? 0;
-  $("mSellPrice").value = a.sellPrice ?? 0;
-  $("mExpire").value = a.expire || "";
-  $("mAlertDays").value = a.alertDays ?? 3;
+  setValue("mProvider", a.provider || "");
+  setValue("mBuyPrice", a.buyPrice ?? 0);
+  setValue("mSellPrice", a.sellPrice ?? 0);
+  setValue("mExpire", a.expire || "");
+  setValue("mAlertDays", a.alertDays ?? 3);
 
-  $("mCollect").value = a.collect || "NO";
-  $("mTag").value = a.tag || "";
-  $("mNotes").value = a.notes || "";
+  setValue("mTag", a.tag || "");
+  setValue("mNotes", a.notes || "");
+
   syncCategoryUI();
 }
 
 function getAccRowFromModal(base) {
   const a = base ? { ...base } : blankAccount();
 
-  a.category = $("mCategory").value.trim();
-  a.profileName = $("mName").value.trim();
-  a.phone = $("mPhone").value.trim();
-  a.profiles = Math.max(0, +$("mProfiles").value || 0);
+  a.category = normalizeCategoryName(String(getValue("mCategory", "")).trim());
+  a.profileName = String(getValue("mName", "")).trim();
+  a.phone = String(getValue("mPhone", "")).trim();
+  a.profiles = Math.max(0, +(getValue("mProfiles", 0)) || 0);
 
-  a.pin = $("mPin").value.trim();
-  a.email = $("mEmail").value.trim();
-  a.pass = $("mPass").value.trim();
-  a.accountName = $("mAccountName").value.trim();
+  a.pin = String(getValue("mPin", "")).trim();
+  a.email = String(getValue("mEmail", "")).trim();
+  a.pass = String(getValue("mPass", "")).trim();
+  a.accountName = String(getValue("mAccountName", "")).trim();
 
-  a.user = $("mUser").value.trim();
-  a.iptvPass = $("mIptvPass").value.trim();
-  a.url = $("mUrl").value.trim();
-  a.plan = $("mPlan").value.trim();
+  a.user = String(getValue("mUser", "")).trim();
+  a.iptvPass = String(getValue("mIptvPass", "")).trim();
+  a.url = String(getValue("mUrl", "")).trim();
+  a.plan = String(getValue("mPlan", "")).trim();
 
-  a.provider = $("mProvider").value.trim();
-  a.buyPrice = Math.max(0, +$("mBuyPrice").value || 0);
-  a.sellPrice = Math.max(0, +$("mSellPrice").value || 0);
-  a.expire = $("mExpire").value;
-  a.alertDays = Math.max(0, +$("mAlertDays").value || 0);
+  a.provider = String(getValue("mProvider", "")).trim();
+  a.buyPrice = Math.max(0, +(getValue("mBuyPrice", 0)) || 0);
+  a.sellPrice = Math.max(0, +(getValue("mSellPrice", 0)) || 0);
+  a.expire = getValue("mExpire", "");
+  a.alertDays = Math.max(0, +(getValue("mAlertDays", 0)) || 0);
 
-  a.collect = $("mCollect").value;
-  a.tag = $("mTag").value.trim();
-  a.notes = $("mNotes").value.trim();
+  a.tag = String(getValue("mTag", "")).trim();
+  a.notes = String(getValue("mNotes", "")).trim();
 
   return a;
 }
 
 function validateAccount(a) {
   if (!a.category) return "Falta categoría.";
-  if (!a.profileName) return "Falta perfil/nombre.";
+  if (!a.profileName) return "Falta cliente.";
   if (a.sellPrice < 0 || a.buyPrice < 0) return "Precios inválidos.";
 
   if (isIPTVCategory(a.category)) {
@@ -545,44 +685,49 @@ function validateAccount(a) {
     if (!a.url) return "En IPTV falta URL.";
     if (!a.iptvPass) return "En IPTV falta Clave.";
   } else {
-    if (!a.email) return "En Streaming falta Correo.";
-    if (!a.pass) return "En Streaming falta Clave.";
+    if (!a.email && !a.user && !a.accountName) return "Falta una cuenta válida.";
+    if (!a.pass && !a.iptvPass) return "Falta clave.";
   }
+
   return null;
 }
 
-// =======================
-// Expense Modal
-// =======================
-let editingExpId = null;
-
+/* =======================
+   EXPENSE MODAL
+======================= */
 function openExpModal(title) {
-  $("modalExpTitle") && ($("modalExpTitle").textContent = title);
-  $("modalExpBack") && ($("modalExpBack").style.display = "flex");
+  if ($("modalExpTitle")) $("modalExpTitle").textContent = title;
+  if ($("modalExpBack")) $("modalExpBack").style.display = "flex";
 }
+
 function closeExpModal() {
-  $("modalExpBack") && ($("modalExpBack").style.display = "none");
+  if ($("modalExpBack")) $("modalExpBack").style.display = "none";
   editingExpId = null;
 }
+
 $("btnExpClose")?.addEventListener("click", closeExpModal);
-$("modalExpBack")?.addEventListener("click", (e) => e.target.id === "modalExpBack" && closeExpModal());
+$("modalExpBack")?.addEventListener("click", (e) => {
+  if (e.target.id === "modalExpBack") closeExpModal();
+});
 
 function setExpModalFromRow(e) {
-  $("eDate").value = e.date || todayISO();
-  $("eCategory").value = e.category || "";
-  $("eProvider").value = e.provider || "";
-  $("eAmount").value = e.amount ?? 0;
-  $("eNote").value = e.note || "";
+  setValue("eDate", e.date || todayISO());
+  setValue("eCategory", e.category || "");
+  setValue("eProvider", e.provider || "");
+  setValue("eAmount", e.amount ?? 0);
+  setValue("eNote", e.note || "");
 }
+
 function getExpRowFromModal(base) {
   const e = base ? { ...base } : blankExpense();
-  e.date = $("eDate").value || todayISO();
-  e.category = $("eCategory").value.trim();
-  e.provider = $("eProvider").value.trim();
-  e.amount = Math.max(0, +$("eAmount").value || 0);
-  e.note = $("eNote").value.trim();
+  e.date = getValue("eDate", todayISO()) || todayISO();
+  e.category = String(getValue("eCategory", "")).trim();
+  e.provider = String(getValue("eProvider", "")).trim();
+  e.amount = Math.max(0, +(getValue("eAmount", 0)) || 0);
+  e.note = String(getValue("eNote", "")).trim();
   return e;
 }
+
 function validateExpense(e) {
   if (!e.date) return "Falta fecha.";
   if (!e.category) return "Falta categoría del gasto.";
@@ -590,14 +735,15 @@ function validateExpense(e) {
   return null;
 }
 
-// =======================
-// Buttons (New / Save)
-// =======================
+/* =======================
+   NEW / SAVE BUTTONS
+======================= */
 $("btnNewAccount")?.addEventListener("click", () => {
   editingAccId = null;
   setAccModalFromRow(blankAccount());
   openAccModal("Nueva cuenta");
 });
+
 $("btnNewExpense")?.addEventListener("click", () => {
   editingExpId = null;
   setExpModalFromRow(blankExpense());
@@ -611,14 +757,17 @@ $("btnAccSave")?.addEventListener("click", async () => {
   if (err) return toast(err);
 
   try {
-    if (!editingAccId) await addAccountFirestore(a);
-    else await updateAccountFirestore(editingAccId, a);
+    if (!editingAccId) {
+      await addAccountFirestore(a);
+    } else {
+      await updateAccountFirestore(editingAccId, a);
+    }
 
     closeAccModal();
     toast("Cuenta guardada ✅");
   } catch (e) {
     console.error("Save account error:", e);
-    toast("Error guardando cuenta (Firestore). Revisa consola/permisos.");
+    toast("Error guardando cuenta.");
   }
 });
 
@@ -629,44 +778,47 @@ $("btnExpSave")?.addEventListener("click", async () => {
   if (err) return toast(err);
 
   try {
-    if (!editingExpId) await addExpenseFirestore(e);
-    else await updateExpenseFirestore(editingExpId, e);
+    if (!editingExpId) {
+      await addExpenseFirestore(e);
+    } else {
+      await updateExpenseFirestore(editingExpId, e);
+    }
 
     closeExpModal();
     toast("Gasto guardado ✅");
   } catch (er) {
     console.error("Save expense error:", er);
-    toast("Error guardando gasto (Firestore). Revisa consola/permisos.");
+    toast("Error guardando gasto.");
   }
 });
 
-// =======================
-// WhatsApp
-// =======================
+/* =======================
+   WHATSAPP
+======================= */
 function buildWhatsAppMessage(a) {
   const cat = a.category || "Cuenta";
-  const exp = a.expire ? a.expire : "—";
+  const exp = a.expire ? formatExpireDisplay(a.expire) : "—";
   const d = daysUntil(a.expire);
   const daysTxt = d === null ? "—" : `${d} día(s)`;
-  const price = fmt(+a.sellPrice || 0, 2);
 
   const access = isIPTVCategory(a.category)
     ? `Usuario: ${a.user || "—"}\nClave: ${a.iptvPass || "—"}\nURL: ${a.url || "—"}`
-    : `Correo: ${a.email || "—"}\nClave: ${a.pass || "—"}\nPIN: ${a.pin || "—"}`;
+    : `Cuenta: ${a.accountName || a.email || a.user || "—"}\nClave: ${a.pass || "—"}\nPIN: ${a.pin || "—"}`;
 
   let msg = `Hola ${a.profileName || ""} 👋
 📌 Plataforma: ${cat}
-💰 Precio: ${price}
+💰 Precio: ${fmt(+a.sellPrice || 0, 2)}
 📅 Expira: ${exp} (faltan: ${daysTxt})
 
 🔑 Datos:
 ${access}
 
-✅ Si deseas renovar tu ${cat}, respóndeme "RENOVAR" y te lo dejo activo.`;
+✅ Si deseas renovar tu ${cat}, respóndeme "RENOVAR".`;
 
   if (a.notes) msg += `\n\n📝 Nota: ${a.notes}`;
   return msg;
 }
+
 function openWhatsApp(a) {
   const phone = normalizePhone(a.phone);
   if (!phone) return toast("No hay celular válido para WhatsApp.");
@@ -674,13 +826,11 @@ function openWhatsApp(a) {
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
-// =======================
-// Modal Detalle (ver) + Editar
-// =======================
-let viewingAccId = null;
-
+/* =======================
+   VIEW MODAL
+======================= */
 function openViewModal(accId) {
-  const a = db.accounts.find(x => x.id === accId);
+  const a = db.accounts.find((x) => x.id === accId);
   if (!a) return;
 
   viewingAccId = accId;
@@ -691,6 +841,7 @@ function openViewModal(accId) {
     ? `<div class="subcard glass2">
         <b>Acceso IPTV</b>
         <div class="divider"></div>
+        <div class="small"><span class="muted">Cliente:</span> ${escapeHtml(a.profileName || "")}</div>
         <div class="small"><span class="muted">Usuario:</span> ${escapeHtml(a.user || "")}</div>
         <div class="small"><span class="muted">Clave:</span> ${escapeHtml(a.iptvPass || "")}</div>
         <div class="small"><span class="muted">URL:</span> ${escapeHtml(a.url || "")}</div>
@@ -699,131 +850,144 @@ function openViewModal(accId) {
     : `<div class="subcard glass2">
         <b>Acceso Streaming</b>
         <div class="divider"></div>
-        <div class="small"><span class="muted">Correo:</span> ${escapeHtml(a.email || "")}</div>
+        <div class="small"><span class="muted">Cliente:</span> ${escapeHtml(a.profileName || "")}</div>
+        <div class="small"><span class="muted">Cuenta:</span> ${escapeHtml(getAccountDisplayName(a))}</div>
         <div class="small"><span class="muted">Clave:</span> ${escapeHtml(a.pass || "")}</div>
         <div class="small"><span class="muted">PIN:</span> ${escapeHtml(a.pin || "")}</div>
-        <div class="small"><span class="muted">Nombre cuenta:</span> ${escapeHtml(a.accountName || "")}</div>
       </div>`;
 
-  $("modalViewBody").innerHTML = `
-    <div class="row">
-      <div class="subcard glass2">
-        <b>${escapeHtml(a.category || "Cuenta")}</b>
-        <div class="small muted">${escapeHtml(a.tag || "")}</div>
-        <div class="divider"></div>
-        <div class="small"><span class="muted">Cliente:</span> ${escapeHtml(a.profileName || "")}</div>
-        <div class="small"><span class="muted">WhatsApp:</span> ${escapeHtml(a.phone || "")}</div>
-        <div class="small"><span class="muted">Proveedor:</span> ${escapeHtml(a.provider || "")}</div>
+  if ($("modalViewBody")) {
+    $("modalViewBody").innerHTML = `
+      <div class="row">
+        <div class="subcard glass2">
+          <b>${escapeHtml(a.category || "Cuenta")}</b>
+          <div class="small muted">${escapeHtml(a.tag || "")}</div>
+          <div class="divider"></div>
+          <div class="small"><span class="muted">Cliente:</span> ${escapeHtml(a.profileName || "")}</div>
+          <div class="small"><span class="muted">WhatsApp:</span> ${escapeHtml(a.phone || "")}</div>
+          <div class="small"><span class="muted">Proveedor:</span> ${escapeHtml(a.provider || "")}</div>
+        </div>
+
+        <div class="subcard glass2">
+          <b>Finanzas</b>
+          <div class="divider"></div>
+          <div class="small"><span class="muted">Costo:</span> ${fmt(+a.buyPrice || 0, 2)}</div>
+          <div class="small"><span class="muted">Venta:</span> ${fmt(+a.sellPrice || 0, 2)}</div>
+          <div class="small"><span class="muted">Ganancia:</span> ${fmt(profit, 2)}</div>
+          <div class="divider"></div>
+          <div class="small"><span class="muted">Expira:</span> ${escapeHtml(formatExpireDisplay(a.expire) || "—")}</div>
+          <div class="small"><span class="muted">Días:</span> ${d === null ? "—" : fmt0(d)}</div>
+          <div class="small"><span class="muted">Cuenta atrás:</span> ${escapeHtml(timeLeftLabel(a.expire))}</div>
+        </div>
       </div>
 
+      ${accessBlock}
+
       <div class="subcard glass2">
-        <b>Finanzas</b>
+        <b>Notas</b>
         <div class="divider"></div>
-        <div class="small"><span class="muted">Costo:</span> ${fmt(+a.buyPrice || 0, 2)}</div>
-        <div class="small"><span class="muted">Venta:</span> ${fmt(+a.sellPrice || 0, 2)}</div>
-        <div class="small"><span class="muted">Ganancia:</span> ${fmt(profit, 2)}</div>
-        <div class="divider"></div>
-        <div class="small"><span class="muted">Expira:</span> ${escapeHtml(a.expire || "—")}</div>
-        <div class="small"><span class="muted">Días:</span> ${d === null ? "—" : fmt0(d)}</div>
-        <div class="small"><span class="muted">Cuenta atrás:</span> ${escapeHtml(timeLeftLabel(a.expire))}</div>
+        <div class="small">${escapeHtml(a.notes || "—")}</div>
       </div>
-    </div>
 
-    ${accessBlock}
+      <div class="row">
+        <button class="btn" id="btnViewWA" type="button">💬 WhatsApp</button>
+        <button class="btn" id="btnViewRenew" type="button">🔁 Renovar +30 días</button>
+        <button class="btn danger" id="btnViewDelete" type="button">🗑️ Eliminar</button>
+      </div>
+    `;
+  }
 
-    <div class="subcard glass2">
-      <b>Notas</b>
-      <div class="divider"></div>
-      <div class="small">${escapeHtml(a.notes || "—")}</div>
-    </div>
+  if ($("modalViewBack")) $("modalViewBack").style.display = "flex";
 
-    <div class="row">
-      <button class="btn" id="btnViewWA" type="button">💬 WhatsApp</button>
-      <button class="btn" id="btnViewRenew" type="button">🔁 Renovar +30 días</button>
-      <button class="btn danger" id="btnViewDelete" type="button">🗑️ Eliminar</button>
-    </div>
-  `;
-
-  $("modalViewBack").style.display = "flex";
-
-  $("btnViewWA").onclick = () => openWhatsApp(a);
-  $("btnViewRenew").onclick = async () => {
-    if (!a.expire) return toast("Esta cuenta no tiene expiración.");
+  $("btnViewWA")?.addEventListener("click", () => openWhatsApp(a), { once: true });
+  $("btnViewRenew")?.addEventListener("click", async () => {
     await renewAccountFirestore(a.id, a.expire);
     toast("Renovado +30 días ✅");
-  };
-  $("btnViewDelete").onclick = async () => {
+  }, { once: true });
+  $("btnViewDelete")?.addEventListener("click", async () => {
     if (!confirm("¿Eliminar esta cuenta?")) return;
     await deleteAccountFirestore(a.id);
     toast("Cuenta eliminada ✅");
     closeViewModal();
-  };
+  }, { once: true });
 }
+
 function closeViewModal() {
-  $("modalViewBack").style.display = "none";
+  if ($("modalViewBack")) $("modalViewBack").style.display = "none";
   viewingAccId = null;
 }
+
 $("btnViewClose")?.addEventListener("click", closeViewModal);
-$("modalViewBack")?.addEventListener("click", (e) => e.target.id === "modalViewBack" && closeViewModal());
+$("modalViewBack")?.addEventListener("click", (e) => {
+  if (e.target.id === "modalViewBack") closeViewModal();
+});
 
 $("btnViewEdit")?.addEventListener("click", () => {
   if (!viewingAccId) return;
-  const row = db.accounts.find(x => x.id === viewingAccId);
+  const row = db.accounts.find((x) => x.id === viewingAccId);
   if (!row) return;
+
   closeViewModal();
   editingAccId = row.id;
   setAccModalFromRow(row);
   openAccModal("Editar cuenta");
 });
 
-// =======================
-// Filters
-// =======================
+/* =======================
+   FILTERS
+======================= */
 function filterAccounts() {
-  const q = ($("qAcc")?.value || "").trim().toLowerCase();
-  const cat = ($("fCategoryAcc")?.value || "").trim().toLowerCase();
-  const prov = ($("fProviderAcc")?.value || "").trim().toLowerCase();
-  const collect = $("fCollectAcc")?.value || "";
-  const exp = $("fExpAcc")?.value || "";
+  const q = (getValue("qAcc") || "").trim().toLowerCase();
+  const cat = (getValue("fCategoryAcc") || "").trim().toLowerCase();
+  const prov = (getValue("fProviderAcc") || "").trim().toLowerCase();
+  const exp = getValue("fExpAcc") || "";
 
   return db.accounts.filter((a) => {
-    if (cat && !(a.category || "").toLowerCase().includes(cat)) return false;
-    if (prov && !(a.provider || "").toLowerCase().includes(prov)) return false;
-
-    if (collect === "YES" && a.collect !== "YES") return false;
-    if (collect === "NO" && a.collect === "YES") return false;
+    if (cat && !String(a.category || "").toLowerCase().includes(cat)) return false;
+    if (prov && !String(a.provider || "").toLowerCase().includes(prov)) return false;
 
     if (exp) {
-      const d = daysUntil(a.expire);
-      if (exp === "EXPIRED" && !(d !== null && d < 0)) return false;
-      if (exp === "SOON") {
-        const al = +a.alertDays || 0;
-        if (!(d !== null && d <= al && d >= 0)) return false;
-      }
+      const status = getRenewalStatus(a);
+      if (exp === "EXPIRED" && status !== "EXPIRED") return false;
+      if (exp === "SOON" && status !== "SOON") return false;
     }
 
     if (q) {
       const blob = [
-        a.category, a.profileName, a.phone,
-        a.pin, a.email, a.pass,
-        a.user, a.iptvPass, a.url,
-        a.provider, a.accountName, a.plan, a.tag, a.notes,
-        String(a.buyPrice), String(a.sellPrice), a.expire
+        a.category,
+        a.profileName,
+        a.phone,
+        a.pin,
+        a.email,
+        a.pass,
+        a.user,
+        a.iptvPass,
+        a.url,
+        a.provider,
+        a.accountName,
+        a.plan,
+        a.tag,
+        a.notes,
+        String(a.buyPrice),
+        String(a.sellPrice),
+        a.expire
       ].join(" ").toLowerCase();
+
       if (!blob.includes(q)) return false;
     }
 
     return true;
   });
 }
+
 function filterExpenses() {
-  const q = ($("qExp")?.value || "").trim().toLowerCase();
-  const cat = ($("fExpCat")?.value || "").trim().toLowerCase();
-  const from = $("fExpFrom")?.value || "";
-  const to = $("fExpTo")?.value || "";
+  const q = (getValue("qExp") || "").trim().toLowerCase();
+  const cat = (getValue("fExpCat") || "").trim().toLowerCase();
+  const from = getValue("fExpFrom") || "";
+  const to = getValue("fExpTo") || "";
 
   return db.expenses.filter((x) => {
-    if (cat && !(x.category || "").toLowerCase().includes(cat)) return false;
+    if (cat && !String(x.category || "").toLowerCase().includes(cat)) return false;
     if (from && (x.date || "") < from) return false;
     if (to && (x.date || "") > to) return false;
 
@@ -835,201 +999,293 @@ function filterExpenses() {
   });
 }
 
-["qAcc", "fCategoryAcc", "fProviderAcc", "fCollectAcc", "fExpAcc"].forEach((id) => {
+function filterRenewals() {
+  const search = (getValue("renewSearch") || "").trim().toLowerCase();
+  const platform = getValue("renewPlatformFilter") || "";
+  const status = getValue("renewStatusFilter") || "";
+
+  return db.accounts
+    .filter((a) => {
+      const renewalStatus = getRenewalStatus(a);
+      if (!(renewalStatus === "SOON" || renewalStatus === "EXPIRED")) return false;
+
+      if (platform && normalizeCategoryName(a.category) !== platform) return false;
+      if (status && renewalStatus !== status) return false;
+
+      if (search) {
+        const blob = [
+          a.category,
+          a.profileName,
+          a.provider,
+          a.phone,
+          a.email,
+          a.user,
+          a.notes
+        ].join(" ").toLowerCase();
+
+        if (!blob.includes(search)) return false;
+      }
+
+      return true;
+    })
+    .sort((a, b) => {
+      const da = daysUntil(a.expire);
+      const dbb = daysUntil(b.expire);
+
+      if (da === null && dbb === null) return 0;
+      if (da === null) return 1;
+      if (dbb === null) return -1;
+      return da - dbb;
+    });
+}
+
+["qAcc", "fCategoryAcc", "fProviderAcc", "fExpAcc"].forEach((id) => {
   $(id)?.addEventListener("input", renderAccounts);
   $(id)?.addEventListener("change", renderAccounts);
 });
+
 ["qExp", "fExpCat", "fExpFrom", "fExpTo"].forEach((id) => {
   $(id)?.addEventListener("input", renderExpenses);
   $(id)?.addEventListener("change", renderExpenses);
 });
+
+["renewSearch", "renewPlatformFilter", "renewStatusFilter"].forEach((id) => {
+  $(id)?.addEventListener("input", renderRenewals);
+  $(id)?.addEventListener("change", renderRenewals);
+});
+
 $("aWindow")?.addEventListener("change", renderAnalytics);
 $("aMetric")?.addEventListener("change", renderAnalytics);
 $("aTopN")?.addEventListener("change", renderAnalytics);
 
-// =======================
-// Render Accounts (desktop table + mobile cards)
-// =======================
-function statusPillAccount(a) {
-  const d = daysUntil(a.expire);
-  if (d === null) return `<span class="pill">Sin fecha</span>`;
-  const al = +a.alertDays || 0;
-  if (d < 0) return `<span class="pill danger">Vencido</span>`;
-  if (d <= al) return `<span class="pill warn">Por vencer</span>`;
-  return `<span class="pill ok">OK</span>`;
-}
+/* =======================
+   RENDER ACCOUNTS
+======================= */
 function countdownPillClass(a) {
-  const d = daysUntil(a.expire);
-  if (d === null) return "";
-  if (d < 0) return "danger";
-  if (d <= (+a.alertDays || 0)) return "warn";
-  return "ok";
+  const status = getRenewalStatus(a);
+  if (status === "EXPIRED") return "danger";
+  if (status === "SOON") return "warn";
+  if (status === "OK") return "";
+  return "";
 }
 
 function renderAccounts() {
-  const tbody = $("tbodyAcc");
   const cards = $("cardsAcc");
+  if (!cards) return;
 
   const list = filterAccounts()
     .slice()
     .sort((a, b) => (a.expire || "9999-12-31").localeCompare(b.expire || "9999-12-31"));
 
-  $("countChipAcc") && ($("countChipAcc").textContent = `${list.length} cuentas`);
-  $("countChipAccMobile") && ($("countChipAccMobile").textContent = `${list.length} cuentas`);
+  if ($("countChipAcc")) {
+    $("countChipAcc").textContent = `${list.length} cuentas`;
+  }
 
-  // ---- Desktop table ----
-  if (tbody) {
-    tbody.innerHTML = "";
-    list.forEach((a) => {
-      const d = daysUntil(a.expire);
-      const profit = (+a.sellPrice || 0) - (+a.buyPrice || 0);
+  if (!list.length) {
+    cards.innerHTML = `<div class="account-dark-empty">No hay cuentas para mostrar.</div>`;
+    return;
+  }
 
-      const access = isIPTVCategory(a.category)
-        ? `<div class="small"><span class="muted">U:</span> ${escapeHtml(a.user || "")}</div>
-           <div class="small"><span class="muted">C:</span> ${escapeHtml(a.iptvPass || "")}</div>
-           <div class="small"><span class="muted">URL:</span> ${escapeHtml(a.url || "")}</div>`
-        : `<div class="small"><span class="muted">Correo:</span> ${escapeHtml(a.email || "")}</div>
-           <div class="small"><span class="muted">Clave:</span> ${escapeHtml(a.pass || "")}</div>
-           <div class="small"><span class="muted">PIN:</span> ${escapeHtml(a.pin || "")}</div>`;
+  cards.innerHTML = list.map((a) => {
+    const category = normalizeCategoryName(a.category || "Cuenta");
+    const clientText = getClientDisplayName(a);
+    const countdown = timeLeftLabel(a.expire);
+    const expireText = formatExpireDisplay(a.expire);
+    const priceText = `$${fmt(+a.sellPrice || 0, 2)}`;
+    const countdownClass = countdownPillClass(a);
 
-      const notesShort = (a.notes || "").trim();
-      const notesView = notesShort
-        ? escapeHtml(notesShort.slice(0, 80)) + (notesShort.length > 80 ? "…" : "")
-        : "";
+    return `
+      <div class="account-dark-row">
+        <div class="account-dark-service">${escapeHtml(category)}</div>
 
-      const tr = document.createElement("tr");
-      const shouldBlink = d !== null && d >= 0 && d <= (+a.alertDays || 0);
-      if (shouldBlink) tr.classList.add("blinkRow");
+        <div class="account-dark-client">${escapeHtml(clientText)}</div>
 
-      tr.innerHTML = `
-        <td><span class="pill">${escapeHtml(a.category || "")}</span></td>
-        <td><div><b>${escapeHtml(a.profileName || "")}</b></div><div class="muted small">${escapeHtml(a.tag || "")}</div></td>
-        <td class="small">${escapeHtml(a.phone || "")}</td>
-        <td>${access}</td>
-        <td><div>${escapeHtml(a.provider || "")}</div><div class="muted small">${escapeHtml(a.accountName || a.plan || "")}</div></td>
-        <td class="right mono">${fmt(+a.buyPrice || 0, 2)}</td>
-        <td class="right mono">${fmt(+a.sellPrice || 0, 2)}</td>
-        <td class="right mono">${fmt(profit, 2)}</td>
-        <td><div>${escapeHtml(a.expire || "")}</div><div class="small">${statusPillAccount(a)}</div></td>
-        <td class="right mono">${d === null ? "—" : fmt0(d)}</td>
-        <td><input type="checkbox" ${a.collect === "YES" ? "checked" : ""} data-act="collect" data-id="${a.id}" /></td>
-        <td><span class="pill ${countdownPillClass(a)}">${escapeHtml(timeLeftLabel(a.expire))}</span></td>
-        <td class="right mono">${fmt0(+a.profiles || 0)}</td>
-        <td class="small">${notesView}</td>
-        <td class="right">
-          <button class="iconBtn" data-act="view" data-id="${a.id}" title="Ver detalle">👁️</button>
-          <button class="iconBtn" data-act="wa" data-id="${a.id}" title="WhatsApp">💬</button>
-          <button class="iconBtn" data-act="renew" data-id="${a.id}" title="Renovar +30 días">🔁</button>
-          <button class="iconBtn" data-act="edit" data-id="${a.id}">✏️</button>
-          <button class="iconBtn" data-act="del" data-id="${a.id}">🗑️</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
+        <div class="account-dark-view-wrap">
+          <button class="account-dark-view" data-act="view" data-id="${a.id}" type="button">
+            👁️ Ver cuenta
+          </button>
+        </div>
 
-    tbody.querySelectorAll("button[data-act]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const act = btn.dataset.act;
-        const id = btn.dataset.id;
-        const row = db.accounts.find((x) => x.id === id);
-        if (!row) return;
+        <div class="account-dark-price">${escapeHtml(priceText)}</div>
 
-        if (act === "view") openViewModal(id);
-        else if (act === "edit") {
-          editingAccId = id;
-          setAccModalFromRow(row);
-          openAccModal("Editar cuenta");
-        } else if (act === "del") {
-          if (!confirm("¿Eliminar esta cuenta?")) return;
-          await deleteAccountFirestore(id);
-          toast("Cuenta eliminada ✅");
-        } else if (act === "wa") openWhatsApp(row);
-        else if (act === "renew") {
-          if (!row.expire) return toast("Esta cuenta no tiene expiración.");
+        <div class="account-dark-expire">${escapeHtml(expireText)}</div>
+
+        <div class="account-dark-countdown ${countdownClass}">
+          ${escapeHtml(countdown)}
+        </div>
+
+        <div class="account-dark-actions">
+          <button class="account-dark-btn renew" data-act="renew" data-id="${a.id}" type="button">
+            Renovar
+          </button>
+
+          <button
+            class="account-dark-btn delete"
+            data-act="delete"
+            data-id="${a.id}"
+            type="button"
+            aria-label="Eliminar"
+            title="Eliminar"
+          >
+            🗑️
+          </button>
+
+          <button
+            class="account-dark-btn whatsapp"
+            data-act="wa"
+            data-id="${a.id}"
+            type="button"
+            aria-label="WhatsApp"
+            title="WhatsApp"
+          >
+            <svg viewBox="0 0 32 32" width="18" height="18" aria-hidden="true">
+              <path fill="currentColor" d="M19.11 17.41c-.27-.14-1.58-.78-1.82-.87-.24-.09-.42-.14-.6.14-.18.27-.69.87-.85 1.05-.16.18-.31.2-.58.07-.27-.14-1.12-.41-2.13-1.31-.79-.7-1.32-1.56-1.47-1.83-.15-.27-.02-.41.11-.55.12-.12.27-.31.4-.47.13-.16.18-.27.27-.45.09-.18.04-.34-.02-.47-.07-.14-.6-1.45-.82-1.99-.22-.52-.44-.45-.6-.46h-.51c-.18 0-.47.07-.72.34-.25.27-.94.92-.94 2.24 0 1.32.96 2.59 1.09 2.77.14.18 1.89 2.89 4.58 4.05.64.28 1.15.45 1.54.58.65.21 1.24.18 1.71.11.52-.08 1.58-.65 1.81-1.28.22-.63.22-1.17.16-1.28-.07-.11-.24-.18-.51-.31z"/>
+              <path fill="currentColor" d="M16.03 3.2C9.03 3.2 3.35 8.88 3.35 15.88c0 2.23.58 4.4 1.68 6.3L3.2 28.8l6.8-1.78a12.6 12.6 0 0 0 6.03 1.54h.01c7 0 12.68-5.68 12.68-12.69 0-3.39-1.32-6.58-3.72-8.97A12.58 12.58 0 0 0 16.03 3.2zm0 23.2h-.01a10.5 10.5 0 0 1-5.35-1.46l-.38-.23-4.03 1.06 1.08-3.93-.25-.4a10.55 10.55 0 1 1 8.94 4.96z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  cards.querySelectorAll("[data-act]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const act = btn.dataset.act;
+      const id = btn.dataset.id;
+      const row = db.accounts.find((x) => x.id === id);
+      if (!row) return;
+
+      try {
+        if (act === "view") {
+          openViewModal(id);
+        } else if (act === "wa") {
+          openWhatsApp(row);
+        } else if (act === "renew") {
           await renewAccountFirestore(id, row.expire);
           toast("Renovado +30 días ✅");
+        } else if (act === "delete") {
+          if (!confirm("¿Eliminar esta cuenta?")) return;
+          await deleteAccountFirestore(id);
+          toast("Cuenta eliminada 🗑️");
         }
-      });
+      } catch (e) {
+        console.error("Account row action error:", e);
+        toast("Ocurrió un error.");
+      }
     });
+  });
+}
 
-    tbody.querySelectorAll("input[type=checkbox][data-act]").forEach((ch) => {
-      ch.addEventListener("change", async () => {
-        const id = ch.dataset.id;
-        try {
-          await updateAccountFirestore(id, { collect: ch.checked ? "YES" : "NO" });
-        } catch (e) {
-          console.error("Update collect error:", e);
-          toast("Error actualizando Cobrar.");
-        }
-      });
-    });
-  }
+/* =======================
+   RENDER RENEWALS
+======================= */
+function createRenewalCardHTML(a) {
+  const status = getRenewalStatus(a);
+  const category = normalizeCategoryName(a.category || "Cuenta");
+  const clientText = getClientDisplayName(a);
+  const expireText = formatExpireDisplay(a.expire);
+  const countdown = timeLeftLabel(a.expire);
+  const priceText = `$${fmt(+a.sellPrice || 0, 2)}`;
+  const countdownClass =
+    status === "EXPIRED" ? "danger" :
+    status === "SOON" ? "warn" : "";
 
-  // ---- Mobile cards (resumen) ----
-  if (cards) {
-    cards.innerHTML = "";
-    list.forEach((a) => {
-      const d = daysUntil(a.expire);
-      const profit = (+a.sellPrice || 0) - (+a.buyPrice || 0);
-      const status =
-        d === null ? "Sin fecha" :
-        d < 0 ? "Vencido" :
-        d <= (+a.alertDays || 0) ? "Por vencer" : "OK";
+  const statusBadge = status === "EXPIRED"
+    ? `<span class="pill danger">Vencido</span>`
+    : `<span class="pill warn">Por vencer</span>`;
 
-      const pillClass =
-        d === null ? "" :
-        d < 0 ? "danger" :
-        d <= (+a.alertDays || 0) ? "warn" : "ok";
+  return `
+    <div class="account-dark-row renewal-row">
+      <div class="account-dark-service">
+        ${escapeHtml(category)}
+        <div class="renewal-inline-status">${statusBadge}</div>
+      </div>
 
-      const el = document.createElement("div");
-      el.className = "accCard glass2";
-      el.innerHTML = `
-        <div class="accTop">
-          <div>
-            <div class="accName">${escapeHtml(a.profileName || "—")}</div>
-            <div class="accMeta">${escapeHtml(a.category || "Cuenta")} · ${escapeHtml(a.provider || "—")}</div>
-          </div>
-          <span class="pill ${pillClass}">${escapeHtml(status)}</span>
-        </div>
+      <div class="account-dark-client">${escapeHtml(clientText)}</div>
 
-        <div class="accBadges">
-          <span class="pill">Exp: ${escapeHtml(a.expire || "—")}</span>
-          <span class="pill">Días: ${d === null ? "—" : fmt0(d)}</span>
-          <span class="pill">Gan: ${fmt(profit, 2)}</span>
-          <span class="pill">Cobrar: ${a.collect === "YES" ? "Sí" : "No"}</span>
-        </div>
+      <div class="account-dark-view-wrap">
+        <button class="account-dark-view" data-act="view" data-id="${a.id}" type="button">
+          👁️ Ver cuenta
+        </button>
+      </div>
 
-        <div class="accActions">
-          <button class="btn tiny" data-act="view" data-id="${a.id}">👁️ Más info</button>
-          <button class="btn tiny" data-act="wa" data-id="${a.id}">💬 WhatsApp</button>
-          <button class="btn tiny" data-act="edit" data-id="${a.id}">✏️ Editar</button>
-        </div>
-      `;
-      cards.appendChild(el);
-    });
+      <div class="account-dark-price">${escapeHtml(priceText)}</div>
 
-    cards.querySelectorAll("button[data-act]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const act = btn.dataset.act;
-        const id = btn.dataset.id;
-        const row = db.accounts.find((x) => x.id === id);
-        if (!row) return;
+      <div class="account-dark-expire">${escapeHtml(expireText)}</div>
 
-        if (act === "view") openViewModal(id);
-        if (act === "wa") openWhatsApp(row);
-        if (act === "edit") {
+      <div class="account-dark-countdown ${countdownClass}">
+        ${escapeHtml(countdown)}
+      </div>
+
+      <div class="account-dark-actions renewal-actions">
+        <button class="account-dark-btn renew" data-act="renew" data-id="${a.id}" type="button">
+          Renovar
+        </button>
+
+        <button class="account-dark-btn edit" data-act="edit" data-id="${a.id}" type="button">
+          Editar
+        </button>
+
+        <button class="account-dark-btn whatsapp" data-act="wa" data-id="${a.id}" type="button" aria-label="WhatsApp" title="WhatsApp">
+          <svg viewBox="0 0 32 32" width="18" height="18" aria-hidden="true">
+            <path fill="currentColor" d="M19.11 17.41c-.27-.14-1.58-.78-1.82-.87-.24-.09-.42-.14-.6.14-.18.27-.69.87-.85 1.05-.16.18-.31.2-.58.07-.27-.14-1.12-.41-2.13-1.31-.79-.7-1.32-1.56-1.47-1.83-.15-.27-.02-.41.11-.55.12-.12.27-.31.4-.47.13-.16.18-.27.27-.45.09-.18.04-.34-.02-.47-.07-.14-.6-1.45-.82-1.99-.22-.52-.44-.45-.6-.46h-.51c-.18 0-.47.07-.72.34-.25.27-.94.92-.94 2.24 0 1.32.96 2.59 1.09 2.77.14.18 1.89 2.89 4.58 4.05.64.28 1.15.45 1.54.58.65.21 1.24.18 1.71.11.52-.08 1.58-.65 1.81-1.28.22-.63.22-1.17.16-1.28-.07-.11-.24-.18-.51-.31z"/>
+            <path fill="currentColor" d="M16.03 3.2C9.03 3.2 3.35 8.88 3.35 15.88c0 2.23.58 4.4 1.68 6.3L3.2 28.8l6.8-1.78a12.6 12.6 0 0 0 6.03 1.54h.01c7 0 12.68-5.68 12.68-12.69 0-3.39-1.32-6.58-3.72-8.97A12.58 12.58 0 0 0 16.03 3.2zm0 23.2h-.01a10.5 10.5 0 0 1-5.35-1.46l-.38-.23-4.03 1.06 1.08-3.93-.25-.4a10.55 10.55 0 1 1 8.94 4.96z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+
+function renderRenewals() {
+  const cards = $("cardsRenewals");
+  const list = filterRenewals();
+  const soonCount = list.filter((a) => getRenewalStatus(a) === "SOON").length;
+  const expiredCount = list.filter((a) => getRenewalStatus(a) === "EXPIRED").length;
+
+  if ($("countChipRenewals")) $("countChipRenewals").textContent = `${list.length} cuentas`;
+  if ($("renewSoonCount")) $("renewSoonCount").textContent = String(soonCount);
+  if ($("renewExpiredCount")) $("renewExpiredCount").textContent = String(expiredCount);
+  if ($("renewVisibleCount")) $("renewVisibleCount").textContent = String(list.length);
+
+  if (!cards) return;
+
+  cards.innerHTML = list.length
+    ? list.map((a) => createRenewalCardHTML(a)).join("")
+    : `<div class="muted small">No hay cuentas por vencer o vencidas con esos filtros.</div>`;
+
+  cards.querySelectorAll("[data-act]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const act = btn.dataset.act;
+      const id = btn.dataset.id;
+      const row = db.accounts.find((x) => x.id === id);
+      if (!row) return;
+
+      try {
+        if (act === "renew") {
+          await renewAccountFirestore(id, row.expire);
+          toast("Renovado +30 días ✅");
+        } else if (act === "edit") {
           editingAccId = id;
           setAccModalFromRow(row);
           openAccModal("Editar cuenta");
+        } else if (act === "wa") {
+          openWhatsApp(row);
+        } else if (act === "view") {
+          openViewModal(id);
         }
-      });
+      } catch (e) {
+        console.error("Renewals card action error:", e);
+        toast("Ocurrió un error.");
+      }
     });
-  }
+  });
 }
 
-// =======================
-// Render Expenses
-// =======================
+/* =======================
+   RENDER EXPENSES
+======================= */
 function renderExpenses() {
   const tbody = $("tbodyExp");
   if (!tbody) return;
@@ -1038,11 +1294,12 @@ function renderExpenses() {
     .slice()
     .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
-  $("countChipExp") && ($("countChipExp").textContent = `${list.length} gastos`);
+  if ($("countChipExp")) $("countChipExp").textContent = `${list.length} gastos`;
   tbody.innerHTML = "";
 
   list.forEach((e) => {
     const tr = document.createElement("tr");
+
     tr.innerHTML = `
       <td class="mono">${escapeHtml(e.date || "")}</td>
       <td>${escapeHtml(e.category || "")}</td>
@@ -1054,6 +1311,7 @@ function renderExpenses() {
         <button class="iconBtn" data-act="del" data-id="${e.id}">🗑️</button>
       </td>
     `;
+
     tbody.appendChild(tr);
   });
 
@@ -1064,44 +1322,58 @@ function renderExpenses() {
       const row = db.expenses.find((x) => x.id === id);
       if (!row) return;
 
-      if (act === "edit") {
-        editingExpId = id;
-        setExpModalFromRow(row);
-        openExpModal("Editar gasto");
-      } else if (act === "del") {
-        if (!confirm("¿Eliminar este gasto?")) return;
-        await deleteExpenseFirestore(id);
-        toast("Gasto eliminado ✅");
+      try {
+        if (act === "edit") {
+          editingExpId = id;
+          setExpModalFromRow(row);
+          openExpModal("Editar gasto");
+        } else if (act === "del") {
+          if (!confirm("¿Eliminar este gasto?")) return;
+          await deleteExpenseFirestore(id);
+          toast("Gasto eliminado ✅");
+        }
+      } catch (e) {
+        console.error("Expense action error:", e);
+        toast("Ocurrió un error.");
       }
     });
   });
 }
 
-// =======================
-// Dashboard metrics
-// =======================
+/* =======================
+   DASHBOARD
+======================= */
 function sumAccounts() {
   const sales = db.accounts.reduce((s, a) => s + (+a.sellPrice || 0), 0);
   const costs = db.accounts.reduce((s, a) => s + (+a.buyPrice || 0), 0);
   return { sales, costs };
 }
+
 function sumExpenses() {
   return db.expenses.reduce((s, e) => s + (+e.amount || 0), 0);
 }
+
 function countExpSoonAndExpired() {
-  let soon = 0, expired = 0, urgent = 0;
+  let soon = 0;
+  let expired = 0;
+  let urgent = 0;
+
   db.accounts.forEach((a) => {
     const d = daysUntil(a.expire);
     if (d === null) return;
-    if (d < 0) expired++;
-    else {
-      const al = +a.alertDays || 0;
-      if (d <= al) soon++;
+
+    if (d < 0) {
+      expired++;
+    } else {
+      const alertDays = +a.alertDays || 0;
+      if (d <= alertDays) soon++;
       if (d <= 1) urgent++;
     }
   });
+
   return { soon, expired, urgent };
 }
+
 function topCategoryByWindow(days) {
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
   const map = new Map();
@@ -1112,51 +1384,69 @@ function topCategoryByWindow(days) {
     const t = new Date(tISO).getTime();
     if (t < cutoff) return;
 
-    const k = (a.category || "Sin categoría").trim() || "Sin categoría";
-    map.set(k, (map.get(k) || 0) + 1);
+    const key = normalizeCategoryName(a.category || "Sin categoría") || "Sin categoría";
+    map.set(key, (map.get(key) || 0) + 1);
   });
 
-  let best = null, bestV = 0;
+  let best = null;
+  let bestV = 0;
+
   for (const [k, v] of map.entries()) {
-    if (v > bestV) { best = k; bestV = v; }
+    if (v > bestV) {
+      best = k;
+      bestV = v;
+    }
   }
+
   return best ? `${best} (${bestV})` : "—";
 }
 
 function groupAccountsByCategoryWithinDays(days) {
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
   const map = new Map();
+
   db.accounts.forEach((a) => {
     const tISO = tsToISO(a.createdAt) || tsToISO(a.updatedAt);
     if (!tISO) return;
     const t = new Date(tISO).getTime();
     if (t < cutoff) return;
-    const k = (a.category || "Sin categoría").trim() || "Sin categoría";
-    map.set(k, (map.get(k) || 0) + 1);
+
+    const key = normalizeCategoryName(a.category || "Sin categoría") || "Sin categoría";
+    map.set(key, (map.get(key) || 0) + 1);
   });
-  return [...map.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value);
+
+  return [...map.entries()]
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value);
 }
+
 function groupExpensesByCategoryWithinDays(days) {
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
   const map = new Map();
+
   db.expenses.forEach((e) => {
-    const t = new Date((e.date || "") + "T00:00:00").getTime();
+    const t = new Date(`${e.date || ""}T00:00:00`).getTime();
     if (!t || t < cutoff) return;
-    const k = (e.category || "Sin categoría").trim() || "Sin categoría";
-    map.set(k, (map.get(k) || 0) + (+e.amount || 0));
+
+    const key = (e.category || "Sin categoría").trim() || "Sin categoría";
+    map.set(key, (map.get(key) || 0) + (+e.amount || 0));
   });
-  return [...map.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value);
+
+  return [...map.entries()]
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value);
 }
 
-// =======================
-// Canvas chart (rounded + glow)
-// =======================
+/* =======================
+   CHARTS
+======================= */
 function clearCanvas(canvas) {
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
+
 function roundRect(ctx, x, y, w, h, r) {
-  const rr = Math.min(r, w/2, h/2);
+  const rr = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
   ctx.moveTo(x + rr, y);
   ctx.arcTo(x + w, y, x + w, y + h, rr);
@@ -1165,20 +1455,27 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y, x + w, y, rr);
   ctx.closePath();
 }
+
 function drawBarChart(canvas, items, opts = {}) {
   if (!canvas) return;
+
   const ctx = canvas.getContext("2d");
-  const w = canvas.width, h = canvas.height;
+  const w = canvas.width;
+  const h = canvas.height;
+
   clearCanvas(canvas);
 
   const bg = ctx.createLinearGradient(0, 0, 0, h);
-  bg.addColorStop(0, "rgba(0,0,0,0.20)");
-  bg.addColorStop(1, "rgba(0,0,0,0.38)");
+  bg.addColorStop(0, "rgba(255,255,255,0.28)");
+  bg.addColorStop(1, "rgba(220,235,246,0.28)");
   ctx.fillStyle = bg;
   roundRect(ctx, 0, 0, w, h, 14);
   ctx.fill();
 
-  const padL = 52, padR = 14, padT = 16, padB = 34;
+  const padL = 52;
+  const padR = 14;
+  const padT = 16;
+  const padB = 34;
   const plotW = w - padL - padR;
   const plotH = h - padT - padB;
 
@@ -1187,24 +1484,24 @@ function drawBarChart(canvas, items, opts = {}) {
   const gap = 10;
   const barW = Math.max(14, (plotW - gap * (n - 1)) / n);
 
-  // grid
   ctx.font = "12px system-ui";
+
   const ticks = 4;
   for (let i = 0; i <= ticks; i++) {
     const v = Math.round((max * i) / ticks);
     const y = padT + plotH - (plotH * i) / ticks;
-    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+
+    ctx.strokeStyle = "rgba(62,109,145,0.10)";
     ctx.beginPath();
     ctx.moveTo(padL, y);
     ctx.lineTo(padL + plotW, y);
     ctx.stroke();
 
-    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    ctx.fillStyle = "rgba(23,56,78,0.75)";
     ctx.fillText(String(v), 10, y + 4);
   }
 
-  // axis
-  ctx.strokeStyle = "rgba(255,255,255,0.14)";
+  ctx.strokeStyle = "rgba(62,109,145,0.18)";
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(padL, padT);
@@ -1212,8 +1509,8 @@ function drawBarChart(canvas, items, opts = {}) {
   ctx.lineTo(padL + plotW, padT + plotH);
   ctx.stroke();
 
-  const barColor = opts.barColor || "rgba(247,201,72,0.55)";
-  const glow = opts.glow || "rgba(247,201,72,0.22)";
+  const barColor = opts.barColor || "rgba(93,167,217,0.55)";
+  const glow = opts.glow || "rgba(93,167,217,0.22)";
 
   items.forEach((it, i) => {
     const x = padL + i * (barW + gap);
@@ -1228,9 +1525,10 @@ function drawBarChart(canvas, items, opts = {}) {
     ctx.fill();
     ctx.restore();
 
-    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.fillStyle = "rgba(23,56,78,0.86)";
     ctx.font = "11px system-ui";
-    const lbl = (it.label.length > 10) ? it.label.slice(0, 10) + "…" : it.label;
+
+    const lbl = it.label.length > 10 ? `${it.label.slice(0, 10)}…` : it.label;
 
     ctx.save();
     ctx.translate(x + barW / 2, padT + plotH + 16);
@@ -1241,9 +1539,6 @@ function drawBarChart(canvas, items, opts = {}) {
   });
 }
 
-// =======================
-// Analytics chart
-// =======================
 function topCategoriesChart(days, metric, topN) {
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
   const map = new Map();
@@ -1254,41 +1549,46 @@ function topCategoriesChart(days, metric, topN) {
     const t = new Date(tISO).getTime();
     if (t < cutoff) return;
 
-    const k = (a.category || "Sin categoría").trim() || "Sin categoría";
-    const revenue = (+a.sellPrice || 0);
+    const key = normalizeCategoryName(a.category || "Sin categoría") || "Sin categoría";
+    const revenue = +a.sellPrice || 0;
     const prof = (+a.sellPrice || 0) - (+a.buyPrice || 0);
     const add = metric === "count" ? 1 : metric === "revenue" ? revenue : prof;
-    map.set(k, (map.get(k) || 0) + add);
+
+    map.set(key, (map.get(key) || 0) + add);
   });
 
-  let items = [...map.entries()].map(([label, value]) => ({ label, value }));
-  items.sort((a, b) => b.value - a.value);
+  const items = [...map.entries()]
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value);
+
   return items.slice(0, topN);
 }
+
 function renderAnalytics() {
   if (!$("chartTopCats")) return;
 
-  const days = +($("aWindow")?.value || 7);
-  const metric = $("aMetric")?.value || "count";
-  const topN = +($("aTopN")?.value || 5);
+  const days = +(getValue("aWindow", 7)) || 7;
+  const metric = getValue("aMetric", "count") || "count";
+  const topN = +(getValue("aTopN", 5)) || 5;
 
   const title =
     metric === "count" ? `Top categorías por cantidad (últimos ${days} días)` :
     metric === "revenue" ? `Top categorías por ingresos (últimos ${days} días)` :
     `Top categorías por ganancia (últimos ${days} días)`;
 
-  $("aTitle") && ($("aTitle").textContent = title);
+  if ($("aTitle")) $("aTitle").textContent = title;
 
   const items = topCategoriesChart(days, metric, topN);
-  drawBarChart($("chartTopCats"), items.length ? items : [{ label: "Sin datos", value: 0 }], {
-    barColor: "rgba(90,215,255,0.50)",
-    glow: "rgba(90,215,255,0.22)"
-  });
+  drawBarChart(
+    $("chartTopCats"),
+    items.length ? items : [{ label: "Sin datos", value: 0 }],
+    {
+      barColor: "rgba(93,167,217,0.52)",
+      glow: "rgba(93,167,217,0.22)"
+    }
+  );
 }
 
-// =======================
-// Dashboard render
-// =======================
 function renderDashboard() {
   if (!$("kpiSales")) return;
 
@@ -1306,43 +1606,47 @@ function renderDashboard() {
   $("kpiTop7").textContent = topCategoryByWindow(7);
   $("kpiTop30").textContent = topCategoryByWindow(30);
 
-  $("countChipDash") && ($("countChipDash").textContent = `${db.accounts.length} cuentas · ${db.expenses.length} gastos`);
-  $("miniAccounts") && ($("miniAccounts").textContent = fmt0(db.accounts.length));
-  $("miniExpenses") && ($("miniExpenses").textContent = fmt0(db.expenses.length));
-  $("miniCollect") && ($("miniCollect").textContent = fmt0(db.accounts.filter((a) => a.collect === "YES").length));
-  $("miniUrgent") && ($("miniUrgent").textContent = fmt0(expState.urgent));
+  if ($("countChipDash")) $("countChipDash").textContent = `${db.accounts.length} cuentas · ${db.expenses.length} gastos`;
+  if ($("miniAccounts")) $("miniAccounts").textContent = fmt0(db.accounts.length);
+  if ($("miniExpenses")) $("miniExpenses").textContent = fmt0(db.expenses.length);
+  if ($("miniCollect")) $("miniCollect").textContent = fmt0(expState.soon);
+  if ($("miniUrgent")) $("miniUrgent").textContent = fmt0(expState.urgent);
 
   const sales7 = groupAccountsByCategoryWithinDays(7).slice(0, 10);
   const sales30 = groupAccountsByCategoryWithinDays(30).slice(0, 10);
   const exp30 = groupExpensesByCategoryWithinDays(30).slice(0, 10);
 
-  drawBarChart($("chartSales7"), sales7.length ? sales7 : [{ label: "Sin datos", value: 0 }], {
-    barColor: "rgba(247,201,72,0.55)", glow: "rgba(247,201,72,0.22)"
-  });
-  drawBarChart($("chartSales30"), sales30.length ? sales30 : [{ label: "Sin datos", value: 0 }], {
-    barColor: "rgba(247,201,72,0.55)", glow: "rgba(247,201,72,0.22)"
-  });
-  drawBarChart($("chartExpenses30"), exp30.length ? exp30 : [{ label: "Sin datos", value: 0 }], {
-    barColor: "rgba(255,107,107,0.42)", glow: "rgba(255,107,107,0.20)"
-  });
+  drawBarChart(
+    $("chartSales7"),
+    sales7.length ? sales7 : [{ label: "Sin datos", value: 0 }],
+    {
+      barColor: "rgba(93,167,217,0.55)",
+      glow: "rgba(93,167,217,0.22)"
+    }
+  );
+
+  drawBarChart(
+    $("chartSales30"),
+    sales30.length ? sales30 : [{ label: "Sin datos", value: 0 }],
+    {
+      barColor: "rgba(131,194,231,0.62)",
+      glow: "rgba(131,194,231,0.22)"
+    }
+  );
+
+  drawBarChart(
+    $("chartExpenses30"),
+    exp30.length ? exp30 : [{ label: "Sin datos", value: 0 }],
+    {
+      barColor: "rgba(223,106,106,0.42)",
+      glow: "rgba(223,106,106,0.20)"
+    }
+  );
 }
 
-// refrescar cada minuto (cuenta atrás)
-setInterval(() => renderAll(), 60000);
-
-// =======================
-// Render All
-// =======================
-function renderAll() {
-  if ($("kpiSales")) renderDashboard();
-  if ($("tbodyAcc") || $("cardsAcc")) renderAccounts();
-  if ($("tbodyExp")) renderExpenses();
-  if ($("chartTopCats")) renderAnalytics();
-}
-
-// =======================
-// Backup JSON
-// =======================
+/* =======================
+   BACKUP
+======================= */
 function doBackup() {
   const backupData = {
     exportedAt: new Date().toISOString(),
@@ -1364,47 +1668,68 @@ function doBackup() {
   URL.revokeObjectURL(url);
   toast("Respaldo descargado 💾");
 }
+
 $("btnBackup")?.addEventListener("click", doBackup);
 $("btnBackupTop")?.addEventListener("click", doBackup);
 
-// =======================
-// Import CSV
-// =======================
+/* =======================
+   CSV IMPORT
+======================= */
 $("btnImportCsvBtn")?.addEventListener("click", () => $("fileImportCsv")?.click());
 $("btnImportCsvBtnTop")?.addEventListener("click", () => $("fileImportCsv")?.click());
 
 function parseCSV(text) {
   const out = [];
-  let row = [], val = "", inQ = false;
+  let row = [];
+  let val = "";
+  let inQ = false;
+
   for (let i = 0; i < text.length; i++) {
-    const ch = text[i], nx = text[i + 1];
+    const ch = text[i];
+    const nx = text[i + 1];
+
     if (ch === '"') {
-      if (inQ && nx === '"') { val += '"'; i++; }
-      else inQ = !inQ;
-    } else if (ch === ',' && !inQ) {
-      row.push(val); val = "";
-    } else if ((ch === '\n' || ch === '\r') && !inQ) {
-      if (ch === '\r' && nx === '\n') i++;
+      if (inQ && nx === '"') {
+        val += '"';
+        i++;
+      } else {
+        inQ = !inQ;
+      }
+    } else if (ch === "," && !inQ) {
+      row.push(val);
+      val = "";
+    } else if ((ch === "\n" || ch === "\r") && !inQ) {
+      if (ch === "\r" && nx === "\n") i++;
       row.push(val);
       if (row.some((x) => String(x).trim() !== "")) out.push(row);
-      row = []; val = "";
+      row = [];
+      val = "";
     } else {
       val += ch;
     }
   }
+
   row.push(val);
   if (row.some((x) => String(x).trim() !== "")) out.push(row);
+
   return out;
 }
+
 function normalizeHeader(h) {
   return String(h || "")
-    .trim().toLowerCase()
-    .replaceAll("á", "a").replaceAll("é", "e").replaceAll("í", "i").replaceAll("ó", "o").replaceAll("ú", "u")
+    .trim()
+    .toLowerCase()
+    .replaceAll("á", "a")
+    .replaceAll("é", "e")
+    .replaceAll("í", "i")
+    .replaceAll("ó", "o")
+    .replaceAll("ú", "u")
     .replaceAll("ñ", "n")
     .replace(/\s+/g, "")
     .replaceAll("-", "")
     .replaceAll("_", "");
 }
+
 function numFromCell(x) {
   const s = String(x ?? "").trim();
   if (!s) return 0;
@@ -1415,7 +1740,8 @@ function numFromCell(x) {
 
 function mapCSVToAccount(obj) {
   const a = blankAccount();
-  a.category = (obj.categoria || obj.category || obj.tipo || "").trim();
+
+  a.category = normalizeCategoryName((obj.categoria || obj.category || obj.tipo || "").trim());
   a.profileName = (obj.perfil || obj.nombre || obj.cliente || obj.profile || "").trim();
   a.phone = (obj.celular || obj.telefono || obj.phone || "").trim();
 
@@ -1436,12 +1762,10 @@ function mapCSVToAccount(obj) {
   a.expire = (obj.expiracion || obj.expire || obj.vence || "").trim();
   a.alertDays = Math.max(0, numFromCell(obj.alerta || obj.alertadays || obj.diasalerta || 3)) || 3;
 
-  const cob = String(obj.cobrar || obj.pendiente || obj.collect || "NO").trim().toUpperCase();
-  a.collect = (cob === "SI" || cob === "YES" || cob === "1" || cob === "TRUE") ? "YES" : "NO";
-
   a.profiles = Math.max(0, numFromCell(obj.perfiles || obj.cantidadperfiles || obj.slots || 1)) || 1;
   a.notes = (obj.notas || obj.nota || obj.observaciones || obj.extra || "").trim();
   a.tag = (obj.etiqueta || obj.tag || "").trim();
+
   return a;
 }
 
@@ -1469,7 +1793,9 @@ $("fileImportCsv")?.addEventListener("change", async (e) => {
     const headers = grid[0].map(normalizeHeader);
     const rowsObj = grid.slice(1).map((cols) => {
       const o = {};
-      headers.forEach((h, i) => (o[h] = String(cols[i] ?? "").trim()));
+      headers.forEach((h, i) => {
+        o[h] = String(cols[i] ?? "").trim();
+      });
       return o;
     });
 
@@ -1478,11 +1804,15 @@ $("fileImportCsv")?.addEventListener("change", async (e) => {
 
     if (hasAmount && !hasSell) {
       const incoming = rowsObj.map(mapCSVToExpense).filter((x) => x.category && x.amount > 0);
-      for (const it of incoming) await addExpenseFirestore(it);
+      for (const item of incoming) {
+        await addExpenseFirestore(item);
+      }
       toast(`CSV importado: ${incoming.length} gastos ✅`);
     } else {
       const incoming = rowsObj.map(mapCSVToAccount).filter((x) => x.category && x.profileName);
-      for (const it of incoming) await addAccountFirestore(it);
+      for (const item of incoming) {
+        await addAccountFirestore(item);
+      }
       toast(`CSV importado: ${incoming.length} cuentas ✅`);
     }
   } catch (err) {
@@ -1491,7 +1821,40 @@ $("fileImportCsv")?.addEventListener("change", async (e) => {
   }
 });
 
-// ✅ Render inicial
+/* =======================
+   AUTO REFRESH COUNTDOWN
+======================= */
+setInterval(() => renderAll(), 60000);
+
+/* =======================
+   RENDER ALL
+======================= */
+function renderAll() {
+  renderDashboard();
+  renderAccounts();
+  renderRenewals();
+  renderExpenses();
+  renderAnalytics();
+}
+
+/* =======================
+   INITIAL
+======================= */
 renderAll();
 
+/* =======================
+   DARK MODE
+======================= */
 
+function toggleDarkMode() {
+  document.body.classList.toggle("dark-mode");
+
+  const enabled = document.body.classList.contains("dark-mode");
+  localStorage.setItem("darkMode", enabled ? "1" : "0");
+}
+
+$("btnDarkMode")?.addEventListener("click", toggleDarkMode);
+
+if (localStorage.getItem("darkMode") === "1") {
+  document.body.classList.add("dark-mode");
+}
