@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel Profesional de Cuentas</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-background"></div>
+
+  <!-- LOGIN -->
+  <section id="loginView" class="login-view">
+    <div class="login-bg"></div>
+
+    <div class="login-card">
+      <div class="login-logo-wrap">
+        <img src="logo.png" alt="Logo" class="login-logo" />
+      </div>
+
+      <p class="login-tag">ACCESO CORPORATIVO</p>
+      <h1 class="login-title">Bienvenido</h1>
+      <p class="login-subtitle">
+        Inicia sesión para acceder al sistema de gestión de asistencia.
+      </p>
+
+      <form id="loginForm" class="login-form">
+        <div class="login-group">
+          <label for="loginEmail">Correo corporativo</label>
+          <input
+            type="email"
+            id="loginEmail"
+            placeholder="nombre@gmail.com"
+            required
+          />
+        </div>
+
+        <div class="login-group">
+          <label for="loginPassword">Contraseña</label>
+          <input
+            type="password"
+            id="loginPassword"
+            placeholder="Ingresa tu contraseña"
+            required
+          />
+        </div>
+
+        <button type="submit" class="login-btn-primary">
+          Iniciar sesión
+        </button>
+
+        <button type="button" class="login-btn-secondary" id="registerBtn">
+          Registrarse
+        </button>
+
+        <p id="loginError" class="login-error"></p>
+      </form>
+
+      <p class="login-footer-text">Uso para personal AUTORIZADO</p>
+    </div>
+  </section>
+
+  <!-- PANEL -->
+  <div id="panelView" style="display: none;">
+    <div class="app-shell">
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top">
+          <div class="brand">
+            <div class="brand-logo">
+              <img
+                id="panelLogo"
+                src="logo.png"
+                alt="Logo panel"
+                onerror="this.style.display='none'; this.parentElement.innerHTML='C';"
+              />
+            </div>
+            <div class="brand-text">
+              <h2>ControlPanel</h2>
+              <span>Gestión de cuentas</span>
+            </div>
+          </div>
+
+          <button class="sidebar-close" id="sidebarClose" aria-label="Cerrar menú">
+            ✕
+          </button>
+        </div>
+
+        <nav class="sidebar-nav">
+          <button class="nav-btn active" data-section="dashboard" type="button">
+            <span class="nav-icon">📊</span>
+            <span>Dashboard</span>
+          </button>
+
+          <button class="nav-btn" data-section="cuentas" type="button">
+            <span class="nav-icon">👥</span>
+            <span>Cuentas</span>
+          </button>
+
+          <button class="nav-btn" data-section="renovaciones" type="button">
+            <span class="nav-icon">🔄</span>
+            <span>Renovaciones</span>
+          </button>
+
+          <button class="nav-btn" data-section="agregar" type="button">
+            <span class="nav-icon">➕</span>
+            <span>Agregar cuenta</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="mini-card">
+            <p>Sistema premium</p>
+            <span>Panel animado y responsivo</span>
+
+            <button id="logoutBtn" class="logout-btn" type="button">
+              🔓 Cerrar sesión
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+      <!-- Main -->
+      <main class="main-content">
+        <header class="topbar">
+          <div class="topbar-left">
+            <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú" type="button">
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
+
+            <div>
+              <h1 class="page-title">Panel de gestión</h1>
+              <p class="page-subtitle">Administra cuentas, renovaciones y clientes</p>
+            </div>
+          </div>
+
+          <div class="topbar-right">
+            <div class="search-box">
+              <input
+                type="text"
+                id="searchInput"
+                placeholder="Buscar por servicio o cliente..."
+              />
+            </div>
+
+            <div class="status-pill">
+              <span class="status-dot"></span>
+              <span>Sistema activo</span>
+            </div>
+          </div>
+        </header>
+
+        <!-- Dashboard -->
+        <section class="content-section active" id="dashboardSection">
+          <div class="section-head">
+            <div>
+              <h2>Dashboard general</h2>
+              <p>Resumen completo del estado de tus cuentas</p>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <article class="stat-card float-card">
+              <div class="stat-top">
+                <span>Total cuentas</span>
+                <span class="stat-icon">📁</span>
+              </div>
+              <h3 id="statTotal">0</h3>
+              <p>Cuentas registradas actualmente</p>
+            </article>
+
+            <article class="stat-card float-card delay-1">
+              <div class="stat-top">
+                <span>Por vencer</span>
+                <span class="stat-icon">⏳</span>
+              </div>
+              <h3 id="statPorVencer">0</h3>
+              <p>Cuentas con vencimiento cercano</p>
+            </article>
+
+            <article class="stat-card float-card delay-2">
+              <div class="stat-top">
+                <span>Vencidas</span>
+                <span class="stat-icon">🚨</span>
+              </div>
+              <h3 id="statVencidas">0</h3>
+              <p>Requieren atención inmediata</p>
+            </article>
+
+            <article class="stat-card float-card delay-3">
+              <div class="stat-top">
+                <span>Ganancias</span>
+                <span class="stat-icon">💰</span>
+              </div>
+              <h3 id="statIngresos">$0</h3>
+              <p>Ganancia total estimada</p>
+            </article>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="panel-card wide-card">
+              <div class="panel-head">
+                <h3>Estado de cuentas</h3>
+                <span class="panel-badge">Resumen</span>
+              </div>
+
+              <div class="progress-list">
+                <div class="progress-row">
+                  <div class="progress-label">
+                    <span>Activas</span>
+                    <strong id="labelActivas">0</strong>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="progress-fill fill-success" id="barActivas"></div>
+                  </div>
+                </div>
+
+                <div class="progress-row">
+                  <div class="progress-label">
+                    <span>Próximas a vencer</span>
+                    <strong id="labelWarning">0</strong>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="progress-fill fill-warning" id="barWarning"></div>
+                  </div>
+                </div>
+
+                <div class="progress-row">
+                  <div class="progress-label">
+                    <span>Vencidas</span>
+                    <strong id="labelDanger">0</strong>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="progress-fill fill-danger" id="barDanger"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel-card">
+              <div class="panel-head">
+                <h3>Próximas renovaciones</h3>
+                <span class="panel-badge">Hoy</span>
+              </div>
+              <div id="dashboardRenovaciones" class="mini-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Cuentas -->
+        <section class="content-section" id="cuentasSection">
+          <div class="section-head">
+            <div>
+              <h2>Listado de cuentas</h2>
+              <p>Vista detallada y acciones rápidas</p>
+            </div>
+          </div>
+
+          <div class="table-card">
+            <div class="table-toolbar">
+              <div class="toolbar-left">
+                <h3>Administración</h3>
+                <span id="tableCountBadge" class="table-count">0 registros</span>
+              </div>
+
+              <div class="toolbar-right">
+                <select id="filterEstado">
+                  <option value="todos">Todos</option>
+                  <option value="activa">Activas</option>
+                  <option value="por-vencer">Por vencer</option>
+                  <option value="vencida">Vencidas</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="table-wrapper">
+              <table class="accounts-table">
+                <thead>
+                  <tr>
+                    <th>SERVICIO</th>
+                    <th>CLIENTE</th>
+                    <th>ACCIONES</th>
+                    <th>PRECIO VENTA</th>
+                    <th>EXPIRA</th>
+                    <th>TIEMPO RESTANTE</th>
+                    <th>GESTIÓN</th>
+                  </tr>
+                </thead>
+                <tbody id="tablaCuentas"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Renovaciones -->
+        <section class="content-section" id="renovacionesSection">
+          <div class="section-head">
+            <div>
+              <h2>Renovaciones</h2>
+              <p>Cuentas próximas a vencer o vencidas</p>
+            </div>
+          </div>
+
+          <div class="renew-grid" id="listaRenovaciones"></div>
+        </section>
+
+        <!-- Agregar -->
+        <section class="content-section" id="agregarSection">
+          <div class="section-head">
+            <div>
+              <h2>Agregar cuenta</h2>
+              <p>Registra una nueva cuenta al sistema</p>
+            </div>
+          </div>
+
+          <div class="form-card">
+            <form id="accountForm" class="account-form">
+              <input type="hidden" id="editId" />
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="servicio">Servicio</label>
+                  <input
+                    type="text"
+                    id="servicio"
+                    required
+                    placeholder="Netflix, Disney+, Spotify..."
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="cliente">Cliente</label>
+                  <input
+                    type="text"
+                    id="cliente"
+                    required
+                    placeholder="Nombre del cliente"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="correo">Correo</label>
+                  <input
+                    type="email"
+                    id="correo"
+                    required
+                    placeholder="correo@ejemplo.com"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="contrasena">Contraseña cuenta</label>
+                  <input
+                    type="text"
+                    id="contrasena"
+                    required
+                    placeholder="Contraseña de acceso"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="perfil">Perfil asignado</label>
+                  <input
+                    type="text"
+                    id="perfil"
+                    required
+                    placeholder="Perfil 1, Principal..."
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="pin">PIN</label>
+                  <input
+                    type="number"
+                    id="pin"
+                    placeholder="1234"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="telefono">WhatsApp</label>
+                  <input
+                    type="text"
+                    id="telefono"
+                    required
+                    placeholder="51999999999"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="precioCompra">Precio de compra</label>
+                  <input
+                    type="number"
+                    id="precioCompra"
+                    step="0.01"
+                    required
+                    placeholder="10"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="precioVenta">Precio de venta</label>
+                  <input
+                    type="number"
+                    id="precioVenta"
+                    step="0.01"
+                    required
+                    placeholder="15"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="expira">Fecha de expiración</label>
+                  <input type="date" id="expira" required />
+                </div>
+
+                <div class="form-group form-group-full">
+                  <label for="nota">Nota</label>
+                  <input
+                    type="text"
+                    id="nota"
+                    placeholder="Observaciones del cliente"
+                  />
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="primary-btn" id="submitBtn">
+                  Guardar cuenta
+                </button>
+                <button type="reset" class="secondary-btn" id="resetBtn">
+                  Limpiar
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal detalle -->
+  <div class="modal" id="modal">
+    <div class="modal-backdrop" id="modalBackdrop"></div>
+
+    <div class="modal-box">
+      <div class="modal-header">
+        <div>
+          <h3>Detalle de la cuenta</h3>
+          <p>Información principal</p>
+        </div>
+        <button class="modal-close" id="modalClose" type="button">✕</button>
+      </div>
+
+      <div class="modal-body" id="detalleCuenta"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
