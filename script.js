@@ -1035,11 +1035,6 @@ function enviarWhatsApp(id, esRenovacion) {
       `Espero que estés teniendo un excelente día 😊\n\n` +
       `📺 Te escribo porque tu cuenta de *${account.servicio}* está próxima a vencer ⏳\n\n` +
       `📧 Correo asociado: ${account.correo}\n\n` +
-      `✨ Al renovar tu cuenta mantienes todos tus beneficios:\n` +
-      `✔ Tu perfil personalizado\n` +
-      `✔ Historial de reproducciones\n` +
-      `✔ Series y películas guardadas\n\n` +
-      `💡 Es decir, no perderás nada de tu contenido ni configuraciones 😉\n\n` +
       `🚀 La renovación es rápida y sin interrupciones.\n` +
       `Puedo ayudarte a activarla de inmediato.\n\n` +
       `💬 Solo respóndeme este mensaje y lo hacemos en minutos.\n\n` +
