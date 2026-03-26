@@ -1031,25 +1031,20 @@ function enviarWhatsApp(id, esRenovacion) {
 
   if (esRenovacion) {
     mensaje =
-      `👋 Hola ${account.cliente}!\n\n` +
-      `Espero que estés teniendo un excelente día 😊\n\n` +
-      `📺 Te escribo porque tu cuenta de *${account.servicio}* está próxima a vencer ⏳\n\n` +
-      `📧 Correo asociado: ${account.correo}\n\n` +
-      `🚀 La renovación es rápida y sin interrupciones.\n` +
-      `Puedo ayudarte a activarla de inmediato.\n\n` +
-      `💬 Solo respóndeme este mensaje y lo hacemos en minutos.\n\n` +
-      `🙏 Gracias por confiar en nuestro servicio.\n` +
-      `¡Quedo atento a tu confirmación! 🙌`;
+      `Hola ${account.cliente} 👋\n` +
+      `📺 Plataforma: ${account.servicio}\n` +
+      `💰 Precio: ${account.precio}\n` +
+      `📅 Expira: ${account.expira}\n\n` +
+      `📧 Correo: ${account.correo}\n\n` +
+      `✅ Para renovar, responde "RENOVAR".`;
   } else {
     mensaje =
-      `👋 Hola ${account.cliente}!\n\n` +
-      `Espero que te encuentres muy bien 😊\n\n` +
-      `📺 Te escribo con respecto a tu cuenta de *${account.servicio}*.\n\n` +
-      `📅 Fecha de expiración: ${account.expira}\n` +
-      `📧 Correo asociado: ${account.correo}\n\n` +
-      `💡 Si deseas renovarla, hacer algún cambio o tienes alguna consulta, con gusto puedo ayudarte.\n\n` +
-      `🚀 Estoy disponible para asistirte en cualquier momento.\n\n` +
-      `💬 Quedo atento a tu mensaje 😊`;
+      `Hola ${account.cliente} 👋\n` +
+      `📺 Plataforma: ${account.servicio}\n` +
+      `💰 Precio: ${account.precio}\n` +
+      `📅 Expira: ${account.expira}\n\n` +
+      `📧 Correo: ${account.correo}\n\n` +
+      `💬 Escríbeme si deseas renovar o hacer cambios.`;
   }
 
   const phone = String(account.telefono).replace(/\D/g, "");
