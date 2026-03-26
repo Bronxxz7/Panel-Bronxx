@@ -1032,22 +1032,29 @@ function enviarWhatsApp(id, esRenovacion) {
   if (esRenovacion) {
     mensaje =
       `👋 Hola ${account.cliente}!\n\n` +
-      `📺 Tu cuenta de *${account.servicio}* está por vencer ⏳\n\n` +
-      `📧 Correo: ${account.correo}\n\n` +
-      `✨ Renovando mantienes:\n` +
-      `✔ Tu perfil\n` +
-      `✔ Historial\n` +
+      `Espero que estés teniendo un excelente día 😊\n\n` +
+      `📺 Te escribo porque tu cuenta de *${account.servicio}* está próxima a vencer ⏳\n\n` +
+      `📧 Correo asociado: ${account.correo}\n\n` +
+      `✨ Al renovar tu cuenta mantienes todos tus beneficios:\n` +
+      `✔ Tu perfil personalizado\n` +
+      `✔ Historial de reproducciones\n` +
       `✔ Series y películas guardadas\n\n` +
-      `💡 No perderás nada de tu contenido 😉\n\n` +
-      `🚀 Escríbeme y te la renuevo al instante.\n\n` +
-      `Gracias por tu preferencia 🙌`;
+      `💡 Es decir, no perderás nada de tu contenido ni configuraciones 😉\n\n` +
+      `🚀 La renovación es rápida y sin interrupciones.\n` +
+      `Puedo ayudarte a activarla de inmediato.\n\n` +
+      `💬 Solo respóndeme este mensaje y lo hacemos en minutos.\n\n` +
+      `🙏 Gracias por confiar en nuestro servicio.\n` +
+      `¡Quedo atento a tu confirmación! 🙌`;
   } else {
     mensaje =
       `👋 Hola ${account.cliente}!\n\n` +
-      `📺 Te escribo por tu cuenta de *${account.servicio}*.\n\n` +
-      `📅 Fecha de expiración: ${account.expira}\n\n` +
-      `📧 Correo: ${account.correo}\n\n` +
-      `Cualquier duda estoy atento 😊`;
+      `Espero que te encuentres muy bien 😊\n\n` +
+      `📺 Te escribo con respecto a tu cuenta de *${account.servicio}*.\n\n` +
+      `📅 Fecha de expiración: ${account.expira}\n` +
+      `📧 Correo asociado: ${account.correo}\n\n` +
+      `💡 Si deseas renovarla, hacer algún cambio o tienes alguna consulta, con gusto puedo ayudarte.\n\n` +
+      `🚀 Estoy disponible para asistirte en cualquier momento.\n\n` +
+      `💬 Quedo atento a tu mensaje 😊`;
   }
 
   const phone = String(account.telefono).replace(/\D/g, "");
