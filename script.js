@@ -1052,6 +1052,7 @@ function enviarWhatsApp(id, esRenovacion) {
 
   const phone = String(account.telefono).replace(/\D/g, "");
   const url = `https://wa.me/${phone}?text=${encodeURIComponent(mensaje)}`;
+
   window.open(url, "_blank");
 }
 
