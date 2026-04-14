@@ -643,8 +643,6 @@ Te escribo por tu cuenta de *${account.servicio}* 📺
 
 ¿Deseas renovarla ahora? 🔄✨`;
 }
-  return `Hola ${account.cliente}, te escribo por tu cuenta de ${account.servicio}. Actualmente ${tiempoTexto}. La fecha de renovación es ${fechaTexto}. Si deseas renovarla, escríbeme para ayudarte.`;
-}
 
 function openWhatsApp(phone, message) {
   const cleanPhone = String(phone || "").replace(/\D/g, "");
@@ -1330,6 +1328,7 @@ function renderRenovaciones() {
     });
   });
 }
+
 /* =========================================================
    18) FORMULARIO
 ========================================================= */
