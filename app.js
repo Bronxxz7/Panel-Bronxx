@@ -1306,16 +1306,24 @@ function renderCompletas() {
    17) RENOVACIONES
 ========================================================= */
 function renderRenovaciones() {
-  const data = [...filteredAccounts()].sort((a, b) => {
-    const A = getStatus(a.fechaExpiracion);
-    const B = getStatus(b.fechaExpiracion);
+  const data = cuentas
+    .filter((item) => {
+      const remaining = getRemainingTime(item.fechaExpiracion);
+      if (!remaining) return false;
 
-    if (A.priority !== B.priority) return A.priority - B.priority;
-    return (safeDate(a.fechaExpiracion) || 0) - (safeDate(b.fechaExpiracion) || 0);
-  });
+      // mostrar vencidas o cuentas que faltan 4 días o menos
+      return remaining.expired || remaining.totalHours <= 96;
+    })
+    .sort((a, b) => {
+      const A = getStatus(a.fechaExpiracion);
+      const B = getStatus(b.fechaExpiracion);
+
+      if (A.priority !== B.priority) return A.priority - B.priority;
+      return (safeDate(a.fechaExpiracion) || 0) - (safeDate(b.fechaExpiracion) || 0);
+    });
 
   if (!data.length) {
-    renovacionesContainer.innerHTML = `<div class="empty-state">No hay renovaciones registradas.</div>`;
+    renovacionesContainer.innerHTML = `<div class="empty-state">No hay cuentas por renovar en los próximos 4 días.</div>`;
     return;
   }
 
@@ -1374,7 +1382,6 @@ function renderRenovaciones() {
     });
   });
 }
-
 /* =========================================================
    18) FORMULARIO
 ========================================================= */
