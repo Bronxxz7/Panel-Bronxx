@@ -625,10 +625,24 @@ function buildRenewalMessage(account) {
     if (remaining.expired) {
       tiempoTexto = "ya venció";
     } else {
-      tiempoTexto = `vence en ${remaining.days} día(s) y ${remaining.hours} hora(s)`;
+      tiempoTexto = `${remaining.days} día(s) y ${remaining.hours} hora(s)`;
     }
   }
 
+  return `Hola ${account.cliente} 👋
+
+Te escribo por tu cuenta de *${account.servicio}* 📺  
+
+📧 Correo: ${account.correo}  
+⏳ Estado: ${remaining ? (remaining.expired ? "Vencida" : "vence en " + tiempoTexto) : "-"}  
+📅 Fecha de renovación: ${fechaTexto}  
+
+🔔 Te recomendamos renovar antes de la fecha de vencimiento para mantener tu cuenta activa y evitar la pérdida de información.
+
+⚠️ En caso de vencimiento, la cuenta puede perder sus datos y se te asignará una nueva.
+
+¿Deseas renovarla ahora? 🔄✨`;
+}
   return `Hola ${account.cliente}, te escribo por tu cuenta de ${account.servicio}. Actualmente ${tiempoTexto}. La fecha de renovación es ${fechaTexto}. Si deseas renovarla, escríbeme para ayudarte.`;
 }
 
