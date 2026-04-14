@@ -1062,7 +1062,11 @@ function renderClientes() {
    15) PERFILES
 ========================================================= */
 function renderPerfiles() {
-  const data = filteredAccounts().filter((x) => x.tipoCuenta === "Perfil");
+  const data = cuentas.filter((x) => {
+    const text = `${x.servicio} ${x.correo} ${x.cliente} ${x.perfilCuenta || ""}`;
+    const bySearch = normalizeText(text).includes(normalizeText(filtroBusqueda));
+    return x.tipoCuenta === "Perfil" && bySearch;
+  });
 
   if (!data.length) {
     perfilesTableBody.innerHTML = `
