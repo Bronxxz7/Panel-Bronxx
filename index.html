@@ -1,0 +1,447 @@
+  <!DOCTYPE html>
+  <html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <title>GESTOR VIP</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <link rel="icon" type="image/png" sizes="192x192" href="logoblue.png">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+
+    <!-- INTRO -->
+    <div id="introScreen" class="intro-screen">
+      <div class="intro-bg"></div>
+      <div class="intro-content">
+        <div class="intro-logo">
+          <i class='bx bxs-dashboard'></i>
+        </div>
+        <h1>Panel BYH</h1>
+        <p>Nuestro primer Sistema en GESTIÓN DE CUENTAS</p>
+        <div class="intro-loader">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOGIN -->
+  <section id="loginScreen" class="login-screen hidden">
+  <div class="login-overlay"></div>
+  <div class="login-card glass">
+    <div class="login-logo-wrap">
+      <img src="logoblue.png" alt="Logo" class="login-logo">
+    </div>
+
+    <h2>Iniciar sesión</h2>
+    <p>Accede a tu panel de gestión</p>
+
+    <form id="loginForm" class="login-form">
+      <div class="login-group">
+        <label for="loginEmail">Correo</label>
+        <input id="loginEmail" type="email" placeholder="tucorreo@gmail.com" required>
+      </div>
+
+      <div class="login-group">
+        <label for="loginPassword">Contraseña</label>
+        <input id="loginPassword" type="password" placeholder="••••••••" required>
+      </div>
+
+      <button type="submit" class="primary-btn login-btn">
+        Entrar
+      </button>
+
+      <p id="loginError" class="login-error"></p>
+    </form>
+  </div>
+</section>
+
+    <!-- APP -->
+    <div class="app-shell hidden" id="appShell">
+
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <div class="brand-card">
+          <div class="brand-icon">
+            <img src="logoblue.png" alt="Logo B&B" class="brand-logo-img">
+          </div>
+          <div>
+            <h2>BHBRONX</h2>
+            <p>Primer Panel VIP</p>
+          </div>
+        </div>
+
+        <div class="month-income-card">
+          <span>Ingresos del mes</span>
+          <strong id="sidebarIngresosMes">S/. 0.00</strong>
+        </div>
+
+        <nav class="nav-menu">
+          <button id="nav-dashboard" class="nav-btn active" type="button">
+            <i class='bx bxs-dashboard'></i>
+            <span>Dashboard</span>
+          </button>
+
+          <button id="nav-clientes" class="nav-btn" type="button">
+            <i class='bx bxs-user'></i>
+            <span>Clientes</span>
+          </button>
+
+          <button id="nav-perfiles" class="nav-btn" type="button">
+            <i class='bx bx-layer'></i>
+            <span>Perfiles</span>
+          </button>
+
+          <button id="nav-completas" class="nav-btn" type="button">
+            <i class='bx bxs-id-card'></i>
+            <span>Completas</span>
+          </button>
+
+          <button id="nav-renovaciones" class="nav-btn" type="button">
+            <i class='bx bx-refresh'></i>
+            <span>Renovaciones</span>
+          </button>
+
+          <button id="nav-agregar" class="nav-btn" type="button">
+            <i class='bx bx-plus'></i>
+            <span>Agregar</span>
+          </button>
+
+          <button id="logoutBtn" class="nav-btn" type="button">
+            <i class='bx bx-log-out'></i>
+            <span>Salir</span>
+          </button>
+        </nav>
+      </aside>
+
+      <!-- MAIN -->
+      <main class="main-content">
+
+        <!-- HEADER -->
+        <header class="top-header">
+          <div>
+            <span class="header-chip">Panel principal</span>
+            <h1>Dashboard</h1>
+            <p>Control total de tus cuentas</p>
+          </div>
+        </header>
+
+        <!-- FILTROS -->
+        <section class="filters-grid">
+          <div class="search-box glass">
+            <i class='bx bx-search'></i>
+            <input id="globalSearch" type="text" placeholder="Buscar cuentas...">
+          </div>
+
+          <select id="globalTypeFilter" class="glass select-control">
+            <option value="Todos">Todos</option>
+            <option value="Perfil">Perfil</option>
+            <option value="Completa">Completa</option>
+          </select>
+
+          <select id="globalTimeFilter" class="glass select-control">
+            <option value="30">30 días</option>
+            <option value="15">15 días</option>
+            <option value="7">7 días</option>
+            <option value="Todos">Todos</option>
+          </select>
+
+          <button id="refreshBtn" class="filter-btn glass" type="button">
+            <i class='bx bx-filter'></i>
+          </button>
+        </section>
+
+        <!-- DASHBOARD -->
+        <section id="section-dashboard" class="content-section active-section">
+
+          <div class="stats-grid">
+            <div class="stat-card glass">
+              <div class="stat-icon">
+                <i class='bx bxs-credit-card'></i>
+              </div>
+              <div>
+                <span>Total cuentas</span>
+                <h3 id="totalCuentas">0</h3>
+              </div>
+            </div>
+
+            <div class="stat-card glass">
+              <div class="stat-icon">
+                <i class='bx bxs-user'></i>
+              </div>
+              <div>
+                <span>Clientes</span>
+                <h3 id="totalClientes">0</h3>
+              </div>
+            </div>
+
+            <div class="stat-card glass">
+              <div class="stat-icon">
+                <i class='bx bxs-time'></i>
+              </div>
+              <div>
+                <span>Por vencer</span>
+                <h3 id="porVencer">0</h3>
+              </div>
+            </div>
+
+            <div class="stat-card glass">
+              <div class="stat-icon">
+                <i class='bx bxs-shield'></i>
+              </div>
+              <div>
+                <span>Ganancia</span>
+                <h3 id="gananciaEstimada">S/. 0.00</h3>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-card glass chart-card">
+            <div class="panel-head">
+              <div>
+                <h3>Ingresos</h3>
+                <p>Resumen visual del movimiento mensual</p>
+              </div>
+              <span class="section-chip">Visual</span>
+            </div>
+            <div class="chart-box">
+              <canvas id="incomeChart"></canvas>
+            </div>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="panel-card glass chart-card">
+              <div class="panel-head">
+                <div>
+                  <h3>Evolución de ganancias</h3>
+                  <p>Seguimiento por período</p>
+                </div>
+                <span class="section-chip">Tendencia</span>
+              </div>
+              <div class="chart-box">
+                <canvas id="gananciasChart"></canvas>
+              </div>
+            </div>
+
+            <div class="panel-card glass chart-card">
+              <div class="panel-head">
+                <div>
+                  <h3>Distribución por servicios</h3>
+                  <p>Qué servicios generan más movimiento</p>
+                </div>
+                <span class="section-chip">Servicios</span>
+              </div>
+              <div class="chart-box">
+                <canvas id="serviciosChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-card glass">
+            <div class="panel-head">
+              <div>
+                <h3>Top clientes</h3>
+                <p>Clientes con mayor aporte</p>
+              </div>
+              <span class="section-chip">Ranking</span>
+            </div>
+            <div id="topClientesContainer" class="cards-grid"></div>
+          </div>
+
+        </section>
+
+        <!-- CLIENTES -->
+        <section id="section-clientes" class="content-section">
+          <div class="section-title-row">
+            <div>
+              <h2>Clientes</h2>
+              <p>Resumen de compras y estado de cada cliente</p>
+            </div>
+          </div>
+
+          <div id="clientesContainer" class="cards-grid"></div>
+        </section>
+
+        <!-- PERFILES -->
+        <section id="section-perfiles" class="content-section">
+          <div class="section-title-row">
+            <div>
+              <h2>Perfiles</h2>
+              <p>Listado de cuentas por perfil</p>
+            </div>
+          </div>
+
+          <div class="panel-card glass">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Servicio</th>
+                    <th>Cliente</th>
+                    <th>Precio</th>
+                    <th>Expira</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="perfilesTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- COMPLETAS -->
+        <section id="section-completas" class="content-section">
+          <div class="section-title-row">
+            <div>
+              <h2>Cuentas completas</h2>
+              <p>Cuentas agrupadas y diferenciadas por color</p>
+            </div>
+          </div>
+
+          <div id="completasContainer" class="cards-grid"></div>
+        </section>
+
+        <!-- RENOVACIONES -->
+        <section id="section-renovaciones" class="content-section">
+          <div class="section-title-row">
+            <div>
+              <h2>Renovaciones</h2>
+              <p>Seguimiento de tiempo restante y renovaciones pendientes</p>
+            </div>
+          </div>
+
+          <div id="renovacionesContainer" class="cards-grid"></div>
+        </section>
+
+        <!-- AGREGAR -->
+        <section id="section-agregar" class="content-section">
+          <div class="section-title-row">
+            <div>
+              <h2>Agregar cuenta</h2>
+              <p>Registra una nueva cuenta o edita una existente</p>
+            </div>
+          </div>
+
+          <form id="formCuenta" class="form-card glass">
+            <div class="form-grid">
+              <input id="servicio" type="text" placeholder="Servicio" required>
+              <input id="correo" type="email" placeholder="Correo" required>
+
+              <input id="cliente" type="text" placeholder="Cliente" required>
+              <input id="precioVenta" type="number" step="0.01" placeholder="Precio">
+
+              <input id="fechaExpiracion" type="datetime-local">
+
+              <select id="tipoCuenta">
+                <option value="Perfil">Perfil</option>
+                <option value="Completa">Completa</option>
+              </select>
+              <div id="perfilCuentaWrap">
+                <input id="perfilCuenta" type="text" placeholder="Perfil">
+              </div>
+              <input id="contrasena" type="text" placeholder="Contraseña">
+              <input id="pinCodigo" type="text" placeholder="PIN / Código">
+
+              <input id="telefono" type="text" placeholder="Teléfono">
+            </div>
+
+            <textarea id="observaciones" placeholder="Observaciones"></textarea>
+
+            <div class="form-actions">
+              <button type="submit" class="primary-btn">
+                <i class='bx bx-save'></i>
+                <span>Guardar</span>
+              </button>
+
+              <button type="button" id="cancelEditBtn" class="secondary-btn">
+                <span>Cancelar</span>
+              </button>
+            </div>
+          </form>
+        </section>
+
+      </main>
+    </div>
+
+    <!-- MODAL -->
+    <div id="accountModal" class="modal-overlay">
+      <div class="modal-box">
+        <button id="closeModalBtn" class="modal-close-img-btn" type="button">
+          <img src="cerrar.png" alt="Cerrar">
+        </button>
+
+        <div class="modal-header">
+          <h2 id="modalServicio">Servicio</h2>
+          <p id="modalCorreo">correo@ejemplo.com</p>
+        </div>
+
+        <div class="modal-details-grid">
+          <div class="modal-detail-card">
+            <span>Cliente</span>
+            <strong id="modalCliente">-</strong>
+          </div>
+
+          <div class="modal-detail-card">
+            <span>Tipo</span>
+            <strong id="modalTipo">-</strong>
+          </div>
+
+          <div class="modal-detail-card">
+            <span>Precio</span>
+            <strong id="modalPrecio">-</strong>
+          </div>
+
+          <div class="modal-detail-card">
+            <span>Expira</span>
+            <strong id="modalExpira">-</strong>
+          </div>
+
+          <div class="modal-detail-card">
+            <span>Contraseña</span>
+            <strong id="modalContrasena">-</strong>
+          </div>
+
+          <div class="modal-detail-card">
+            <span>PIN</span>
+            <strong id="modalPin">-</strong>
+          </div>
+
+          <div class="modal-detail-card">
+            <span>Teléfono</span>
+            <strong id="modalTelefono">-</strong>
+          </div>
+
+          <div class="modal-detail-card">
+            <span>Perfil</span>
+            <strong id="modalPerfilCuenta">-</strong>
+          </div>
+        </div>
+
+        <div class="modal-observaciones">
+          <span>Observaciones</span>
+          <p id="modalObservaciones">-</p>
+        </div>
+
+        <div class="modal-actions">
+          <button id="modalEditBtn" class="primary-btn" type="button">
+            <i class='bx bx-pencil'></i>
+            <span>Editar</span>
+          </button>
+
+          <button id="modalWhatsappBtn" class="modal-whatsapp-btn" type="button">
+            <img src="WhatsApp_icon.png" alt="WhatsApp">
+            <span>Enviar WhatsApp</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+  </body>
+  </html>
